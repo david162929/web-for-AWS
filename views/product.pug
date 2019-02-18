@@ -3,3 +3,42 @@ extends layout.pug
 block content
     section#content
     h2 product
+    
+    form(action="/api/1.0/admin/product",method="post")
+        div
+            label ID
+                input(type="text",name="id")
+        div
+            label Title
+                input(type="text",name="title")
+        div
+            label Description
+                div
+                    textarea(name="description")
+        div
+            label Price
+                input(type="text",name="price")
+        div
+            label Texture
+                input(type="text",name="texture")   
+        div
+            label Wash
+                input(type="text",name="wash")              
+        div
+            label Place
+                input(type="text",name="place")
+
+        div
+            label Note
+                div
+                    textarea(name="note")
+        div
+            label Story
+                div
+                    textarea(name="story")
+            
+
+
+
+        
+        button(type="submit") Submit
