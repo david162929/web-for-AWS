@@ -67,18 +67,18 @@ ssh.on('ready', function() {
 //mysql module
 var mysql = require('mysql');
 
-var con = mysql.createConnection({
+var sql = mysql.createConnection({
   host: "localhost",
   user: "ec2-user",
   password: "daviddata1357",
   database: "stylish"
 });
 
-con.connect(function(err) {
+sql.connect(function(err) {
   if (err) throw err;
   console.log("Connected!");
 
-/*   con.query("SELECT * FROM user", function (err, result, fields) {
+/*   sql.query("SELECT * FROM user", function (err, result, fields) {
     if (err) throw err;
 	console.log(result);
   });  */
