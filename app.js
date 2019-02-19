@@ -28,7 +28,7 @@ var storage = multer.diskStorage({
 var upload = multer({ storage: storage });
 
 
-/* //mysql module(移到伺服器之前要做修改)
+//mysql module(移到伺服器之前要做修改)
 var mysql = require('mysql2');
 var Client = require('ssh2').Client;
 var sql;
@@ -61,15 +61,15 @@ ssh.on('ready', function() {
 	port: 22,
 	username: 'ec2-user',
 	privateKey: require('fs').readFileSync("C:/Users/David/.ssh/2019-2-14-keyPair.pem")
-}); */
+}); 
 
 
-//mysql module
+/* //mysql module
 var mysql = require('mysql');
 
 var sql = mysql.createConnection({
   host: "localhost",
-  user: "ec2-user",
+  user: "root",
   password: "daviddata1357",
   database: "stylish"
 });
@@ -77,13 +77,8 @@ var sql = mysql.createConnection({
 sql.connect(function(err) {
   if (err) throw err;
   console.log("Connected!");
-
-/*   sql.query("SELECT * FROM user", function (err, result, fields) {
-    if (err) throw err;
-	console.log(result);
-  });  */
     
-});
+}); */
 
 
 
