@@ -1,6 +1,8 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
+const multer  = require('multer');
+//const upload = multer({ dest: 'uploads/' })		//upload path
 
 const app = express();
 
@@ -11,25 +13,54 @@ app.use(cookieParser());
 //set pug
 app.set("view engine", "pug");
 
-//mysql module
-var mysql = require('mysql');
+//static files
+app.use("/static", express.static("public"));
 
-var con = mysql.createConnection({
-  host: "52.15.89.192",
-  user: "ec2-user",
-  password: "123qweasdzxc",
-  database: "assignment"
+//multer set storing files
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, './public/uploads')
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname)
+  }
 });
+var upload = multer({ storage: storage });
 
-con.connect(function(err) {
-  if (err) throw err;
-  console.log("Connected!");
 
-/*   con.query("SELECT * FROM user", function (err, result, fields) {
-    if (err) throw err;
-	console.log(result);
-  });  */
-    
+//mysql module(移到伺服器之前要做修改)
+var mysql = require('mysql2');
+var Client = require('ssh2').Client;
+var sql;
+
+var ssh = new Client();
+ssh.on('ready', function() {
+	ssh.forwardOut(
+		'127.0.0.1',
+		12345,
+		'127.0.0.1',
+		3306,
+		function (err, stream) {
+			if (err) throw err;
+			sql = mysql.createConnection({
+				user: 'root',
+				database: 'stylish',
+				password: 'daviddata1357',
+				stream: stream // <--- this is the important part
+			});
+			// use sql connection as usual
+			sql.query("SELECT * FROM product", function (err, result, fields) {
+				if (err) throw err;
+				console.log(result);
+			});
+	  
+		});
+	}).connect({
+	// ssh connection config ...
+	host: '52.15.89.192',
+	port: 22,
+	username: 'ec2-user',
+	privateKey: require('fs').readFileSync("C:/Users/David/.ssh/2019-2-14-keyPair.pem")
 });
 
 
@@ -42,12 +73,47 @@ app.get("/",(req, res) => {
 });
 
 app.get("/admin/product.html",(req, res) => {
+
 	res.render("product.pug");
 });
 
 //Poduct API 1.0
+app.post('/profile', upload.single('test'), function (req, res, next) {
+  // req.file is the `avatar` file
+  // req.body will hold the text fields, if there were any
+  	const file = req.file;
+	
+	//file.filename = file.orignalname;
+	
+	console.log(file);
+	console.log(file.mimetype);
+	console.log(file.fieldname);
+	console.log(file.originalname);
+	console.log(file.size);
+	console.log(file.path);
+	res.redirect("/admin/product.html");
+})
+app.post('/photos/upload', upload.array('test2', 20), function (req, res, next) {
+  // req.files is array of `photos` files
+  // req.body will contain the text fields, if there were any
+	const files = req.files;
+	
+	console.log(files);
+
+	res.redirect("/admin/product.html");
+})
+app.post("/img-upload", upload.fields([{name: "test3", maxCount: 1}, {name: "test4", maxCount: 50}]), (req, res, next) => {
+	
+	console.log(req.files);
+	
+	res.redirect("/admin/product.html");
+});
+
+
+
+
 app.post("/api/1.0/admin/product", (req, res) => {
-	const id = req.body.id;
+	const productId = req.body.id;
 	const title = req.body.title;
 	const description = req.body.description;
 	const price = req.body.price;
@@ -56,7 +122,15 @@ app.post("/api/1.0/admin/product", (req, res) => {
 	const place = req.body.place;
 	const note = req.body.note;
 	const story = req.body.story;
+	const colorCodes = req.body.colorCodes;
+	const colorNames = req.body.colorNames;	
+	const sizes = req.body.sizes;
 	
+	
+	sql.query(`INSERT INTO product (product_id, title, description, price, texture, wash, place, note, story, color_codes, color_names, sizes) VALUES ('${productId}', '${title}', "${description}", "${price}", "${texture}", "${wash}", "${place}", "${note}", "${story}", "${colorCodes}", "${colorNames}", "${sizes}")`, function (err, result) {
+		if (err) throw err;
+		console.log("1 record inserted");
+	});
 	
 	console.log(id, title, description, price, texture, wash, place, note, story);
 	res.redirect("/admin/product.html");

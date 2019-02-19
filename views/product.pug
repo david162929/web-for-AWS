@@ -36,9 +36,28 @@ block content
             label Story
                 div
                     textarea(name="story")
-            
-
-
-
+        div
+            label color_codes
+                div
+                    textarea(name="colorCodes")
+        div
+            label color_names
+                div
+                    textarea(name="colorNames")
+        div
+            label sizes
+                div
+                    textarea(name="sizes")                  
         
+        button(type="submit") Submit
+    
+    form(action="/profile", method="post", enctype="multipart/form-data")
+        input(type="file", name="test")
+        button(type="submit") Submit
+    form(action="/photos/upload", method="post", enctype="multipart/form-data")
+        input(type="file", name="test2", multiple)
+        button(type="submit") Submit
+    form(action="/img-upload", method="post", enctype="multipart/form-data")
+        input(type="file", name="test3")
+        input(type="file", name="test4", multiple)
         button(type="submit") Submit
