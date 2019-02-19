@@ -28,7 +28,7 @@ var storage = multer.diskStorage({
 var upload = multer({ storage: storage });
 
 
-//mysql module(移到伺服器之前要做修改)
+//mysql module
 var mysql = require('mysql2');
 var Client = require('ssh2').Client;
 var sql;
