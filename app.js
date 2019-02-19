@@ -51,7 +51,7 @@ ssh.on('ready', function() {
 			// use sql connection as usual
 			sql.query("SELECT * FROM product", function (err, result, fields) {
 				if (err) throw err;
-				console.log(result);
+				//console.log(result);
 			});
 	  
 		});
@@ -113,7 +113,7 @@ app.post("/img-upload", upload.fields([{name: "test3", maxCount: 1}, {name: "tes
 
 
 app.post("/api/1.0/admin/product", (req, res) => {
-	const productId = req.body.id;
+	const productId = req.body.productId;
 	const title = req.body.title;
 	const description = req.body.description;
 	const price = req.body.price;
@@ -126,13 +126,43 @@ app.post("/api/1.0/admin/product", (req, res) => {
 	const colorNames = req.body.colorNames;	
 	const sizes = req.body.sizes;
 	
-	
+	//Insert table product
 	sql.query(`INSERT INTO product (product_id, title, description, price, texture, wash, place, note, story, color_codes, color_names, sizes) VALUES ('${productId}', '${title}', "${description}", "${price}", "${texture}", "${wash}", "${place}", "${note}", "${story}", "${colorCodes}", "${colorNames}", "${sizes}")`, function (err, result) {
 		if (err) throw err;
 		console.log("1 record inserted");
 	});
 	
-	console.log(id, title, description, price, texture, wash, place, note, story);
+	//Insert table variants
+	let productType = 1;
+
+	const arrayOfColorCodes = colorCodes.split(",");
+	const arrayOfColorNames = colorNames.split(",");
+	const arrayOfSizes = sizes.split(",");
+
+	if (arrayOfColorCodes.length != arrayOfColorNames.length){
+		console.log("color_codes != color_names.");
+	}
+	else {
+		for (let i=0 ; i < arrayOfColorCodes.length ; i++){
+			for (let x=0 ; x < arrayOfSizes.length ; x++) {
+				console.log(arrayOfColorCodes[i], arrayOfSizes[x], productType);
+				
+				sql.query(`INSERT INTO variants (product_id, product_type, color_code, color_name, size, variant_price, stock) VALUES ("${productId}", "${productType}", "${arrayOfColorCodes[i]}", "${arrayOfColorNames[i]}", "${arrayOfSizes[x]}", "${price}", "0")`, function (err, result) {
+					if (err) throw err;
+					console.log("1 record inserted");
+				});
+				
+				productType += 1;
+			}
+		
+		};
+	}
+	
+	
+	
+	console.log(req.body);
+	
+		
 	res.redirect("/admin/product.html");
 	
 });

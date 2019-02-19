@@ -7,7 +7,7 @@ block content
     form(action="/api/1.0/admin/product",method="post")
         div
             label ID
-                input(type="text",name="id")
+                input(type="text",name="productId")
         div
             label Title
                 input(type="text",name="title")
@@ -20,10 +20,10 @@ block content
                 input(type="text",name="price")
         div
             label Texture
-                input(type="text",name="texture")   
+                input(type="text",name="texture")
         div
             label Wash
-                input(type="text",name="wash")              
+                input(type="text",name="wash")
         div
             label Place
                 input(type="text",name="place")
@@ -38,17 +38,14 @@ block content
                     textarea(name="story")
         div
             label color_codes
-                div
-                    textarea(name="colorCodes")
+                input(type="text",name="colorCodes")
         div
             label color_names
-                div
-                    textarea(name="colorNames")
+                input(type="text",name="colorNames")
         div
             label sizes
-                div
-                    textarea(name="sizes")                  
-        
+                input(type="text",name="sizes")
+
         button(type="submit") Submit
     
     form(action="/profile", method="post", enctype="multipart/form-data")
