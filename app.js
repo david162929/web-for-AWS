@@ -88,7 +88,7 @@ app.get("/",(req, res) => {
 	res.render("index.pug");
 });
 
-app.get("/admin/product.html",(req, res) => {
+app.get("/admin123/product.html",(req, res) => {
 
 	res.render("product.pug");
 });
