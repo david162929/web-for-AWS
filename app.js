@@ -94,7 +94,7 @@ app.get("/admin/product.html",(req, res) => {
 });
 
 //Poduct API 1.0
-app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 1}, {name: "images", maxCount: 10}]), (req, res) => {
+app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 1}, {name: "images", maxCount: 50}]), (req, res) => {
 	const productId = req.body.productId;
 	const title = req.body.title;
 	const description = req.body.description;

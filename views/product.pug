@@ -56,17 +56,6 @@ block content
             label Other images*
                 div
                     input(type="file", name="images", multiple)
-        p max total upload images is 6, do not use 中文 as your files name.
+        p max total upload images is 50, do not use 中文 as your files name.
 
-        button(type="submit") Submit
-    
-    form(action="/profile", method="post", enctype="multipart/form-data")
-        input(type="file", name="test")
-        button(type="submit") Submit
-    form(action="/photos/upload", method="post", enctype="multipart/form-data")
-        input(type="file", name="test2", multiple)
-        button(type="submit") Submit
-    form(action="/img-upload", method="post", enctype="multipart/form-data")
-        input(type="file", name="test3")
-        input(type="file", name="test4", multiple)
         button(type="submit") Submit
