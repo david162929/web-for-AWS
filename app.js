@@ -28,7 +28,7 @@ var storage = multer.diskStorage({
 var upload = multer({ storage: storage });
 
 
-//mysql module
+//mysql2 and ssh2 module
 var mysql = require('mysql2');
 var Client = require('ssh2').Client;
 var sql;
@@ -88,47 +88,13 @@ app.get("/",(req, res) => {
 	res.render("index.pug");
 });
 
-app.get("/admin123/product.html",(req, res) => {
-
+app.get("/admin/product.html",(req, res) => {
+		
 	res.render("product.pug");
 });
 
 //Poduct API 1.0
-app.post('/profile', upload.single('test'), function (req, res, next) {
-  // req.file is the `avatar` file
-  // req.body will hold the text fields, if there were any
-  	const file = req.file;
-	
-	//file.filename = file.orignalname;
-	
-	console.log(file);
-	console.log(file.mimetype);
-	console.log(file.fieldname);
-	console.log(file.originalname);
-	console.log(file.size);
-	console.log(file.path);
-	res.redirect("/admin/product.html");
-})
-app.post('/photos/upload', upload.array('test2', 20), function (req, res, next) {
-  // req.files is array of `photos` files
-  // req.body will contain the text fields, if there were any
-	const files = req.files;
-	
-	console.log(files);
-
-	res.redirect("/admin/product.html");
-})
-app.post("/img-upload", upload.fields([{name: "test3", maxCount: 1}, {name: "test4", maxCount: 50}]), (req, res, next) => {
-	
-	console.log(req.files);
-	
-	res.redirect("/admin/product.html");
-});
-
-
-
-
-app.post("/api/1.0/admin/product", (req, res) => {
+app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 1}, {name: "images", maxCount: 10}]), (req, res) => {
 	const productId = req.body.productId;
 	const title = req.body.title;
 	const description = req.body.description;
@@ -141,14 +107,47 @@ app.post("/api/1.0/admin/product", (req, res) => {
 	const colorCodes = req.body.colorCodes;
 	const colorNames = req.body.colorNames;	
 	const sizes = req.body.sizes;
+	const mainImagePath = pathTransform(req.files["mainImage"][0].path);
+	const imagesCount = req.files["images"].length;
+	const imagesPath = [];
 	
-	//Insert table product
-	sql.query(`INSERT INTO product (product_id, title, description, price, texture, wash, place, note, story, color_codes, color_names, sizes) VALUES ('${productId}', '${title}', "${description}", "${price}", "${texture}", "${wash}", "${place}", "${note}", "${story}", "${colorCodes}", "${colorNames}", "${sizes}")`, function (err, result) {
+	//replace all "\\" to "\\\\",prevent been escaped when INSERT INTO MySQL
+	function pathTransform (str) {
+		let newstr = str.replace(/\\/g,"\\\\");
+		//console.log(str, "\n", newstr);
+		//console.log("public\\uploads\\1550573899451-main.jpg");
+		//console.log("public\\\\uploads\\\\1550573899451-main.jpg");
+		return newstr;
+	}
+	
+	
+	//combine images path
+	for (let i=0; i < imagesCount ; i++){
+		imagesPath.push(pathTransform(req.files["images"][i].path));
+	}
+	
+	console.log(imagesPath);
+	console.log(imagesPath.join(","));
+	
+	
+	//Insert product table
+	sql.query(`INSERT INTO product (product_id, title, description, price, texture, wash, place, note, story, color_codes, color_names, sizes, main_image_path, other_images_path) VALUES ('${productId}', '${title}', "${description}", "${price}", "${texture}", "${wash}", "${place}", "${note}", "${story}", "${colorCodes}", "${colorNames}", "${sizes}", "${mainImagePath}", "${imagesPath}")`, function (err, result) {
 		if (err) throw err;
 		console.log("1 record inserted");
 	});
 	
-	//Insert table variants
+/* 	//get MySQL data
+	sql.query(`SELECT other_images_path FROM product WHERE id = "26"`, function (err, result) {
+		if (err) throw err;
+		console.log(result);
+		let str = result[0].other_images_path;
+		console.log(str);
+		console.log(str.split(","));
+	}); */
+	
+	
+	
+	//Insert variants table
 	let productType = 1;
 
 	const arrayOfColorCodes = colorCodes.split(",");
@@ -174,11 +173,14 @@ app.post("/api/1.0/admin/product", (req, res) => {
 		};
 	}
 	
+
 	
 	
-	console.log(req.body);
 	
-		
+	//console.log(req.body);
+	//console.log(req.files, req.files["mainImage"][0], req.files["images"].length,req.files["images"][0], req.files["images"][1]);
+	//console.log(req.files["mainImage"][0].path, mainImagePath, req.files["images"][0].path, req.files["images"][1].path);
+	
 	res.redirect("/admin/product.html");
 	
 });

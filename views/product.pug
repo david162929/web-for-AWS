@@ -4,19 +4,19 @@ block content
     section#content
     h2 product
     
-    form(action="/api/1.0/admin/product",method="post")
+    form(action="/api/1.0/admin/product",method="post",enctype="multipart/form-data")
         div
-            label ID
+            label ID*
                 input(type="text",name="productId")
         div
-            label Title
+            label Title*
                 input(type="text",name="title")
         div
             label Description
                 div
                     textarea(name="description")
         div
-            label Price
+            label Price*
                 input(type="text",name="price")
         div
             label Texture
@@ -37,14 +37,26 @@ block content
                 div
                     textarea(name="story")
         div
-            label color_codes
+            label Color_codes
                 input(type="text",name="colorCodes")
+                p ex: FFFFFF,FFDDDD,DDFFBB,DDF0FF,CCCCCC,BB7744,334455
         div
-            label color_names
+            label Color_names
                 input(type="text",name="colorNames")
+                p ex: 白色,粉紅,亮綠,淺藍,淺灰,淺棕,深藍
         div
-            label sizes
+            label Sizes
                 input(type="text",name="sizes")
+                p ex: S,M,L,XL,F
+        div
+            label Main_image*
+                div
+                    input(type="file", name="mainImage")
+        div
+            label Other images*
+                div
+                    input(type="file", name="images", multiple)
+        p max total upload images is 6, do not use 中文 as your files name.
 
         button(type="submit") Submit
     
