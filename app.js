@@ -84,6 +84,10 @@ app.get("/admin/checkout.html",(req, res) => {
 	res.render("checkout");
 });
 
+app.get("/user-sign.html", (req, res) => {
+	
+});
+
 
 /* ---------------API 1.0--------------- */
 /* ---------------Product input form--------------- */

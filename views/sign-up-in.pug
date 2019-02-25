@@ -1,0 +1,35 @@
+extends layout.pug
+
+block content
+    section#content
+    h2 campaign
+    
+    h3 Sign Up
+    form(action="/api/1.0/user/signup", method="post")
+        div
+            label name*:
+                input(type="text", name="name")
+        div
+            label email*:
+            div
+                input(type="text", name="email")
+        div
+            label password*:
+            div
+                input(type="text", name="password")
+        button(type="submit") Sign Up
+        
+    h3 Sign In
+    form(action="/api/1.0/user/signin", method="post")
+        div
+            label name*:
+                input(type="text", name="name")
+        div
+            label email*:
+            div
+                input(type="text", name="email")
+        div
+            label password*:
+            div
+                input(type="text", name="password")
+        button(type="submit") Sign In
