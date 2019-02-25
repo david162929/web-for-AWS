@@ -183,7 +183,132 @@ app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 
 
 
 //Product List API
-app.get("/api/1.0/products/:category", async(req, res) => {
+app.get("/api/1.0/products/search", async(req, res) => {
+	let objectFin;
+	let arrayColors;
+	let arrayVariants = [];
+	let arrayAll;
+	let keyword = req.query.keyword;
+	let paging = parseInt(req.query.paging);
+	let itemNumPerPage = 3;
+	let itemStartNum;
+	let totalItemNum;
+	
+	try{
+		console.log(keyword, paging);
+
+		if (isNaN(paging)) {
+			paging = 0;
+		}
+
+		itemStartNum = paging*itemNumPerPage;
+		
+		arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product WHERE (product_id LIKE '%${keyword}%' OR title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%') LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
+		arrayColors = transformToArrayColors(arrayColors);
+		
+		let temp = await sqlQuery(`SELECT product_id FROM product WHERE (product_id LIKE '%${keyword}%' OR title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%')`);
+		temp = temp.reduce((accumulator,currentValue) => {
+			//console.log(accumulator,"\n",currentValue.product_id);
+			accumulator += "," + `"${currentValue.product_id}"`;
+			return accumulator;
+		},`"${temp[0].product_id}"`);
+		//console.log(temp);
+		//console.log(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id IN (${temp}) ORDER BY variant_id DESC`);
+		let result1 = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id IN (${temp}) ORDER BY variant_id DESC`);
+		//console.log(result1);
+		result1 = transformToArrayVariants(result1);
+		for (let i=itemStartNum ; i < (itemStartNum + itemNumPerPage) ;i++) {
+			arrayVariants.push(result1[i]);
+		};
+		
+		arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product WHERE (product_id LIKE '%${keyword}%' OR title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%') LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
+		arrayAll = arrayAll.map((obj, index, array1) => {
+			obj.sizes = obj.sizes.split(",");						//change sizes string to array
+			obj.main_image = pathTransformNormal(obj.main_image);
+			obj.images = obj.images.split(",");						//change images string to array
+			obj.images = obj.images.map((item, index2, array2) => {
+				return pathTransformNormal(item);
+			});
+			obj.colors = arrayColors[index].colors;
+			obj.variants = arrayVariants[index];
+			return obj;
+		});
+		
+		//check total item num
+		totalItemNum = await sqlQuery(`SELECT COUNT(*) FROM product WHERE (title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%')`);
+		totalItemNum = totalItemNum[0]["COUNT(*)"];
+		console.log(totalItemNum);
+		
+		paging = paging +1;
+		if (paging === Math.ceil(totalItemNum/itemNumPerPage)) {
+			objectFin = {data: arrayAll};
+			res.send(JSON.stringify(objectFin,null,4));
+		}
+		else if (paging < Math.ceil(totalItemNum/itemNumPerPage)) {
+			objectFin = {data: arrayAll, paging: paging};
+			res.send(JSON.stringify(objectFin,null,4));
+		}
+		else{
+			console.log("Out of page.")
+			res.send("Out of page.");
+		}
+
+	}
+	catch (e) {
+		res.status(500).send(e);
+	}
+});
+
+app.get("/api/1.0/products/details", async (req, res) => {
+	let objectFin;
+	let arrayColors;
+	let arrayVariants = [];
+	let arrayAll;
+	let id = req.query.id;
+	console.log(id);
+	
+	try{
+		//check id exist or not
+		let num = await sqlQuery(`SELECT COUNT(*) FROM product WHERE product_id = "${id}"`);
+		num = num[0]["COUNT(*)"];
+		console.log(num);
+		
+		if (num != 0) {
+			arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product WHERE product_id = "${id}"`);
+			arrayColors = transformToArrayColors(arrayColors);
+
+			arrayVariants = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id = "${id}" ORDER BY variant_id DESC`);
+			arrayVariants = transformToArrayVariants(arrayVariants);
+
+			arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product WHERE product_id = "${id}"`);
+			arrayAll = arrayAll.map((obj, index, array1) => {
+				obj.sizes = obj.sizes.split(",");						//change sizes string to array
+				obj.main_image = pathTransformNormal(obj.main_image);
+				obj.images = obj.images.split(",");						//change images string to array
+				obj.images = obj.images.map((item, index2, array2) => {
+					return pathTransformNormal(item);
+				});
+				obj.colors = arrayColors[index].colors;
+				obj.variants = arrayVariants[index];
+				return obj;
+			});
+			objectFin = {data: arrayAll[0]};
+			//console.log(arrayAll);
+			console.log(JSON.stringify(objectFin,null,4));
+			
+			res.send(JSON.stringify(objectFin,null,4));
+		}
+		else {
+			console.log("Product id does not exist.");
+			res.send("Product id does not exist.");
+		}	
+	}
+	catch (e) {
+		res.status(500).send(e);
+	}
+});
+
+app.get("/api/1.0/products/:category", async(req, res) => {			//this route must under other products/ end point route
 	const category = req.params.category;
 	let objectFin;
 	let arrayColors;
@@ -332,130 +457,7 @@ app.get("/api/1.0/products/accessories", (req, res) => {
 	res.send("accessories");
 }); */
 
-app.get("/api/1.0/products/search", async(req, res) => {
-	let objectFin;
-	let arrayColors;
-	let arrayVariants = [];
-	let arrayAll;
-	let keyword = req.query.keyword;
-	let paging = parseInt(req.query.paging);
-	let itemNumPerPage = 3;
-	let itemStartNum;
-	let totalItemNum;
-	
-	try{
-		console.log(keyword, paging);
 
-		if (isNaN(paging)) {
-			paging = 0;
-		}
-
-		itemStartNum = paging*itemNumPerPage;
-		
-		arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product WHERE (product_id LIKE '%${keyword}%' OR title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%') LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
-		arrayColors = transformToArrayColors(arrayColors);
-		
-		let temp = await sqlQuery(`SELECT product_id FROM product WHERE (product_id LIKE '%${keyword}%' OR title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%')`);
-		temp = temp.reduce((accumulator,currentValue) => {
-			//console.log(accumulator,"\n",currentValue.product_id);
-			accumulator += "," + `"${currentValue.product_id}"`;
-			return accumulator;
-		},`"${temp[0].product_id}"`);
-		//console.log(temp);
-		//console.log(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id IN (${temp}) ORDER BY variant_id DESC`);
-		let result1 = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id IN (${temp}) ORDER BY variant_id DESC`);
-		//console.log(result1);
-		result1 = transformToArrayVariants(result1);
-		for (let i=itemStartNum ; i < (itemStartNum + itemNumPerPage) ;i++) {
-			arrayVariants.push(result1[i]);
-		};
-		
-		arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product WHERE (product_id LIKE '%${keyword}%' OR title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%') LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
-		arrayAll = arrayAll.map((obj, index, array1) => {
-			obj.sizes = obj.sizes.split(",");						//change sizes string to array
-			obj.main_image = pathTransformNormal(obj.main_image);
-			obj.images = obj.images.split(",");						//change images string to array
-			obj.images = obj.images.map((item, index2, array2) => {
-				return pathTransformNormal(item);
-			});
-			obj.colors = arrayColors[index].colors;
-			obj.variants = arrayVariants[index];
-			return obj;
-		});
-		
-		//check total item num
-		totalItemNum = await sqlQuery(`SELECT COUNT(*) FROM product WHERE (title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%')`);
-		totalItemNum = totalItemNum[0]["COUNT(*)"];
-		console.log(totalItemNum);
-		
-		paging = paging +1;
-		if (paging === Math.ceil(totalItemNum/itemNumPerPage)) {
-			objectFin = {data: arrayAll};
-			res.send(JSON.stringify(objectFin,null,4));
-		}
-		else if (paging < Math.ceil(totalItemNum/itemNumPerPage)) {
-			objectFin = {data: arrayAll, paging: paging};
-			res.send(JSON.stringify(objectFin,null,4));
-		}
-		else{
-			console.log("Out of page.")
-			res.send("Out of page.");
-		}
-
-	}
-	catch (e) {
-		res.status(500).send(e);
-	}
-});
-
-app.get("/api/1.0/products/details", async (req, res) => {
-	let objectFin;
-	let arrayColors;
-	let arrayVariants = [];
-	let arrayAll;
-	let id = req.query.id;
-	console.log(id);
-	
-	try{
-		//check id exist or not
-		let num = await sqlQuery(`SELECT COUNT(*) FROM product WHERE product_id = "${id}"`);
-		num = num[0]["COUNT(*)"];
-		console.log(num);
-		
-		if (num != 0) {
-			arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product WHERE product_id = "${id}"`);
-			arrayColors = transformToArrayColors(arrayColors);
-
-			arrayVariants = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id = "${id}" ORDER BY variant_id DESC`);
-			arrayVariants = transformToArrayVariants(arrayVariants);
-
-			arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product WHERE product_id = "${id}"`);
-			arrayAll = arrayAll.map((obj, index, array1) => {
-				obj.sizes = obj.sizes.split(",");						//change sizes string to array
-				obj.main_image = pathTransformNormal(obj.main_image);
-				obj.images = obj.images.split(",");						//change images string to array
-				obj.images = obj.images.map((item, index2, array2) => {
-					return pathTransformNormal(item);
-				});
-				obj.colors = arrayColors[index].colors;
-				obj.variants = arrayVariants[index];
-				return obj;
-			});
-			objectFin = {data: arrayAll[0]};
-			//console.log(arrayAll);
-			console.log(JSON.stringify(objectFin,null,4));
-			
-			res.send(JSON.stringify(objectFin,null,4));
-		}
-		else {
-			console.log("Product id does not exist.");
-			res.send("Product id does not exist.");
-		}	
-	}
-	catch (e) {
-		res.status(500).send(e);
-	}
-});
 
 
 
