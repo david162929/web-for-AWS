@@ -196,6 +196,15 @@ app.get("/api/1.0/products/search", async(req, res) => {
 	
 	try{
 		console.log(keyword, paging);
+		
+		//check total item num
+		totalItemNum = await sqlQuery(`SELECT COUNT(*) FROM product WHERE (title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%')`);
+		totalItemNum = totalItemNum[0]["COUNT(*)"];
+		console.log(totalItemNum);
+		
+		if (totalItemNum === 0) {
+			res.send(`Can not find ${keyword}.`);
+		}
 
 		if (isNaN(paging)) {
 			paging = 0;
@@ -233,11 +242,6 @@ app.get("/api/1.0/products/search", async(req, res) => {
 			obj.variants = arrayVariants[index];
 			return obj;
 		});
-		
-		//check total item num
-		totalItemNum = await sqlQuery(`SELECT COUNT(*) FROM product WHERE (title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%')`);
-		totalItemNum = totalItemNum[0]["COUNT(*)"];
-		console.log(totalItemNum);
 		
 		paging = paging +1;
 		if (paging === Math.ceil(totalItemNum/itemNumPerPage)) {
