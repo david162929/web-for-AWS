@@ -111,6 +111,7 @@ app.get("/admin/checkout.html",(req, res) => {
 app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 1}, {name: "images", maxCount: 50}]), (req, res) => {
 	const productId = req.body.productId;
 	const title = req.body.title;
+	const category = req.body.category;
 	const description = req.body.description;
 	const price = req.body.price;
 	const texture = req.body.texture;
@@ -137,20 +138,10 @@ app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 
 	
 	
 	//Insert product table
-	sql.query(`INSERT INTO product (product_id, title, description, price, texture, wash, place, note, story, color_codes, color_names, sizes, main_image_path, other_images_path) VALUES ('${productId}', '${title}', "${description}", "${price}", "${texture}", "${wash}", "${place}", "${note}", "${story}", "${colorCodes}", "${colorNames}", "${sizes}", "${mainImagePath}", "${imagesPath}")`, function (err, result) {
+	sql.query(`INSERT INTO product (product_id, title, category, description, price, texture, wash, place, note, story, color_codes, color_names, sizes, main_image_path, other_images_path) VALUES ('${productId}', '${title}', '${category}', "${description}", "${price}", "${texture}", "${wash}", "${place}", "${note}", "${story}", "${colorCodes}", "${colorNames}", "${sizes}", "${mainImagePath}", "${imagesPath}")`, function (err, result) {
 		if (err) throw err;
 		console.log("1 record inserted(table product), ID: " + result.insertId);
 	});
-	
-/* 	//get MySQL data
-	sql.query(`SELECT other_images_path FROM product WHERE id = "26"`, function (err, result) {
-		if (err) throw err;
-		console.log(result);
-		let str = result[0].other_images_path;
-		console.log(str);
-		console.log(str.split(","));
-	}); */
-	
 	
 	
 	//Insert variants table
@@ -192,131 +183,144 @@ app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 
 
 
 //Product List API
-app.get("/api/1.0/products/all", async(req, res) => {
+app.get("/api/1.0/products/:category", async(req, res) => {
+	const category = req.params.category;
 	let objectFin;
 	let arrayColors;
 	let arrayVariants = [];
 	let arrayAll;
 	//let runStatus = 0;
-	let paging = req.query.paging;
+	let paging = parseInt(req.query.paging);
 	let itemNumPerPage = 3;
 	let itemStartNum;
 	let totalItemNum;
+	console.log(paging);
 	
-	/* 	paging 1 --> 0
-		paging 2 --> 3
-		paging 3 --> 6 
-		(paging - 1)*3  */
+	/* 	paging undefined --> 0 --> 1
+		paging 1 --> 3 --> 2
+		paging 2 --> 6 --> 3
+		paging *3  */
 	
 	try {
-		//check total item num
-		totalItemNum = await sqlQuery(`SELECT COUNT(*) FROM product`);
-		totalItemNum = totalItemNum[0]["COUNT(*)"];
-		console.log(totalItemNum);
-		
-		if (paging === undefined) {
-			paging = 1;
-		}
-		if (paging > Math.ceil(totalItemNum/itemNumPerPage)) {
-			paging = Math.ceil(totalItemNum/itemNumPerPage);
-		}
-		itemStartNum = (paging - 1)*itemNumPerPage;
-		
-		arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
-		arrayColors = transformToArrayColors(arrayColors);
-		
-		let result1 = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants ORDER BY variant_id DESC`);
-		result1 = transformToArrayVariants(result1);
-		for (let i=itemStartNum ; i < (itemStartNum + itemNumPerPage) ;i++) {
-			arrayVariants.push(result1[i]);
-		};
-		
-		arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
-		arrayAll = arrayAll.map((obj, index, array1) => {
-			obj.sizes = obj.sizes.split(",");						//change sizes string to array
-			obj.main_image = pathTransformNormal(obj.main_image);
-			obj.images = obj.images.split(",");						//change images string to array
-			obj.images = obj.images.map((item, index2, array2) => {
-				return pathTransformNormal(item);
+		if (category === "all") {
+			console.log(1);
+			if (isNaN(paging)) {
+				paging = 0;
+			}
+
+			itemStartNum = paging*itemNumPerPage;
+			
+			arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
+			arrayColors = transformToArrayColors(arrayColors);
+			
+			let result1 = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants ORDER BY variant_id DESC`);
+			result1 = transformToArrayVariants(result1);
+			for (let i=itemStartNum ; i < (itemStartNum + itemNumPerPage) ;i++) {
+				arrayVariants.push(result1[i]);
+			};
+			
+			arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
+			arrayAll = arrayAll.map((obj, index, array1) => {
+				obj.sizes = obj.sizes.split(",");						//change sizes string to array
+				obj.main_image = pathTransformNormal(obj.main_image);
+				obj.images = obj.images.split(",");						//change images string to array
+				obj.images = obj.images.map((item, index2, array2) => {
+					return pathTransformNormal(item);
+				});
+				obj.colors = arrayColors[index].colors;
+				obj.variants = arrayVariants[index];
+				return obj;
 			});
-			obj.colors = arrayColors[index].colors;
-			obj.variants = arrayVariants[index];
-			return obj;
-		});
-		objectFin = {data: arrayAll, paging: paging};
-		//console.log(arrayAll);
-		console.log(JSON.stringify(objectFin,null,4));
-		
-		res.send(JSON.stringify(objectFin,null,4));
+			
+			//check total item num
+			totalItemNum = await sqlQuery(`SELECT COUNT(*) FROM product`);
+			totalItemNum = totalItemNum[0]["COUNT(*)"];
+			console.log(totalItemNum);
+			
+			paging = paging +1;
+			if (paging === Math.ceil(totalItemNum/itemNumPerPage)) {
+				objectFin = {data: arrayAll};
+				res.send(JSON.stringify(objectFin,null,4));
+			}
+			else if (paging < Math.ceil(totalItemNum/itemNumPerPage)) {
+				objectFin = {data: arrayAll, paging: paging};
+				res.send(JSON.stringify(objectFin,null,4));
+			}
+			else{
+				console.log("Out of page.")
+				res.send("Out of page.");
+			}
+			//console.log(arrayAll);
+			console.log(JSON.stringify(objectFin,null,4));
+		}
+		else if (category === "women" || category === "men" || category === "accessories") {
+			console.log(2);
+			if (isNaN(paging)) {
+				paging = 0;
+			}
+
+			itemStartNum = paging*itemNumPerPage;
+			
+			arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product WHERE category = "${category}" LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
+			arrayColors = transformToArrayColors(arrayColors);
+			
+			let temp = await sqlQuery(`SELECT product_id FROM product WHERE category = "${category}"`);
+			temp = temp.reduce((accumulator,currentValue) => {
+				//console.log(accumulator,"\n",currentValue.product_id);
+				accumulator += "," + `"${currentValue.product_id}"`;
+				return accumulator;
+			},`"${temp[0].product_id}"`);
+			
+			let result1 = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id IN (${temp}) ORDER BY variant_id DESC`);
+			result1 = transformToArrayVariants(result1);
+			for (let i=itemStartNum ; i < (itemStartNum + itemNumPerPage) ;i++) {
+				arrayVariants.push(result1[i]);
+			};
+			
+			arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product WHERE category = "${category}" LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
+			arrayAll = arrayAll.map((obj, index, array1) => {
+				obj.sizes = obj.sizes.split(",");						//change sizes string to array
+				obj.main_image = pathTransformNormal(obj.main_image);
+				obj.images = obj.images.split(",");						//change images string to array
+				obj.images = obj.images.map((item, index2, array2) => {
+					return pathTransformNormal(item);
+				});
+				obj.colors = arrayColors[index].colors;
+				obj.variants = arrayVariants[index];
+				return obj;
+			});
+			
+			//check total item num
+			totalItemNum = await sqlQuery(`SELECT COUNT(*) FROM product WHERE product_id IN (${temp})`);
+			totalItemNum = totalItemNum[0]["COUNT(*)"];
+			console.log(totalItemNum);
+			
+			paging = paging +1;
+			if (paging === Math.ceil(totalItemNum/itemNumPerPage)) {
+				objectFin = {data: arrayAll};
+				res.send(JSON.stringify(objectFin,null,4));
+			}
+			else if (paging < Math.ceil(totalItemNum/itemNumPerPage)) {
+				objectFin = {data: arrayAll, paging: paging};
+				res.send(JSON.stringify(objectFin,null,4));
+			}
+			else{
+				console.log("Out of page.")
+				res.send("Out of page.");
+			}
+			//console.log(arrayAll);
+			console.log(JSON.stringify(objectFin,null,4));
+		}
+		else {
+			res.send("Category dose not exist.");
+		}
 	}
 	catch (e) {
 		res.status(500).send(e.message);
 	}
-		
-	
-
-/* 		sql.query(`SELECT COUNT(*) FROM product`, (err, result, fields) => {
-			console.log(result[0]["COUNT(*)"]);
-			totalItemNum = result[0]["COUNT(*)"];
-			if (paging === undefined) {
-				paging = 1;
-			}
-			if (paging > Math.ceil(totalItemNum/itemNumPerPage)) {
-				paging = Math.ceil(totalItemNum/itemNumPerPage);
-			}
-			itemStartNum = (paging - 1)*itemNumPerPage;
-
-			sql.query(`SELECT color_codes, color_names FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`, (err, result, fields) => {
-				console.log(result);
-				arrayColors = transformToArrayColors(result);
-				//console.log(arrayColors);
-				//console.log(JSON.stringify(transformToArrayColors(result), null, 4));
-				//console.log("%j",transformToArrayColors(result));	
-			});
-
-			sql.query(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants ORDER BY variant_id DESC`,(err, result, fields) => {
-				result = transformToArrayVariants(result);
-				for (let i=itemStartNum ; i < (itemStartNum + itemNumPerPage) ;i++) {
-					arrayVariants.push(result[i]);
-				};
-				//console.log(arrayVariants);
-				//console.log(JSON.stringify(arrayVariants, null, 4));
-			});	
-			
-			
-			sql.query(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`, (err, result, fields) => {
-				arrayAll = result;
-				arrayAll = arrayAll.map((obj, index, array1) => {
-					obj.sizes = obj.sizes.split(",");						//change sizes string to array
-					obj.main_image = pathTransformNormal(obj.main_image);
-					obj.images = obj.images.split(",");						//change images string to array
-					obj.images = obj.images.map((item, index2, array2) => {
-						return pathTransformNormal(item);
-					});
-					obj.colors = arrayColors[index].colors;
-					obj.variants = arrayVariants[index];
-					return obj;
-				});
-				objectFin = {data: arrayAll, paging: paging};
-				//console.log(arrayAll);
-				console.log(JSON.stringify(objectFin,null,4));
-				
-				res.send(JSON.stringify(objectFin,null,4));
-			});
-		});
- */
-
-
-/* 	sql.query(`SELECT * FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`, (err, result, fields) => {
-		//arrayColors = transformToArrayColors(result);
-		//console.log(arrayColors);
-		console.log(result);
-		//console.log("%j",transformToArrayColors(result));	
-	}); */
-	
 });
 
-app.get("/api/1.0/products/women", (req, res) => {
+/* app.get("/api/1.0/products/women", (req, res) => {
 	res.send("women");
 });
 
@@ -326,7 +330,7 @@ app.get("/api/1.0/products/men", (req, res) => {
 
 app.get("/api/1.0/products/accessories", (req, res) => {
 	res.send("accessories");
-});
+}); */
 
 app.get("/api/1.0/products/search", async(req, res) => {
 	let objectFin;
@@ -334,25 +338,19 @@ app.get("/api/1.0/products/search", async(req, res) => {
 	let arrayVariants = [];
 	let arrayAll;
 	let keyword = req.query.keyword;
-	let paging = req.query.paging;
+	let paging = parseInt(req.query.paging);
 	let itemNumPerPage = 3;
 	let itemStartNum;
 	let totalItemNum;
 	
 	try{
 		console.log(keyword, paging);
-		//check total item num
-		totalItemNum = await sqlQuery(`SELECT COUNT(*) FROM product WHERE (title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%')`);
-		totalItemNum = totalItemNum[0]["COUNT(*)"];
-		console.log(totalItemNum);
-		
-		if (paging === undefined) {
-			paging = 1;
+
+		if (isNaN(paging)) {
+			paging = 0;
 		}
-		if (paging > Math.ceil(totalItemNum/itemNumPerPage)) {
-			paging = Math.ceil(totalItemNum/itemNumPerPage);
-		}
-		itemStartNum = (paging - 1)*itemNumPerPage;
+
+		itemStartNum = paging*itemNumPerPage;
 		
 		arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product WHERE (product_id LIKE '%${keyword}%' OR title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%') LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
 		arrayColors = transformToArrayColors(arrayColors);
@@ -366,7 +364,7 @@ app.get("/api/1.0/products/search", async(req, res) => {
 		//console.log(temp);
 		//console.log(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id IN (${temp}) ORDER BY variant_id DESC`);
 		let result1 = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id IN (${temp}) ORDER BY variant_id DESC`);
-		console.log(result1);
+		//console.log(result1);
 		result1 = transformToArrayVariants(result1);
 		for (let i=itemStartNum ; i < (itemStartNum + itemNumPerPage) ;i++) {
 			arrayVariants.push(result1[i]);
@@ -384,13 +382,26 @@ app.get("/api/1.0/products/search", async(req, res) => {
 			obj.variants = arrayVariants[index];
 			return obj;
 		});
-		objectFin = {data: arrayAll, paging: paging};
-		//console.log(arrayAll);
-		//console.log(JSON.stringify(objectFin,null,4));
 		
-		res.send(JSON.stringify(objectFin,null,4));
+		//check total item num
+		totalItemNum = await sqlQuery(`SELECT COUNT(*) FROM product WHERE (title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%')`);
+		totalItemNum = totalItemNum[0]["COUNT(*)"];
+		console.log(totalItemNum);
 		
-		
+		paging = paging +1;
+		if (paging === Math.ceil(totalItemNum/itemNumPerPage)) {
+			objectFin = {data: arrayAll};
+			res.send(JSON.stringify(objectFin,null,4));
+		}
+		else if (paging < Math.ceil(totalItemNum/itemNumPerPage)) {
+			objectFin = {data: arrayAll, paging: paging};
+			res.send(JSON.stringify(objectFin,null,4));
+		}
+		else{
+			console.log("Out of page.")
+			res.send("Out of page.");
+		}
+
 	}
 	catch (e) {
 		res.status(500).send(e);
@@ -430,7 +441,7 @@ app.get("/api/1.0/products/details", async (req, res) => {
 				obj.variants = arrayVariants[index];
 				return obj;
 			});
-			objectFin = {data: arrayAll};
+			objectFin = {data: arrayAll[0]};
 			//console.log(arrayAll);
 			console.log(JSON.stringify(objectFin,null,4));
 			
@@ -579,21 +590,6 @@ function createArrayAll () {
 
 
 /* ---------------Error--------------- */
-
-
-/* function wrapAsync(fn) {
-  return function(req, res, next) {
-    fn(req, res, next).catch(next);
-  };
-}
-
-app.get('*', wrapAsync(async function(req, res) {
-  await new Promise(resolve => setTimeout(() => resolve(), 50));
-  throw new Error('Oppss!! Something went wrong');
-}));
- */
-
-
 
 //Catching 404 errors
 app.use((req, res) => {
