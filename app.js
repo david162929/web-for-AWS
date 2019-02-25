@@ -31,7 +31,7 @@ var upload = multer({ storage: storage });
 
 
 //create TCP connection to MySQL over SSH by using mysql2 and ssh2 module
-var sql;	//can't use const
+let sql;	//can't use const
 
 const ssh = new Client();
 ssh.on('ready', function() {
@@ -63,33 +63,12 @@ ssh.on('ready', function() {
 	privateKey: require('fs').readFileSync(".ssh/2019-2-14-keyPair.pem")
 }); 
 
-
-/* //mysql module
-var mysql = require('mysql');
-
-var sql = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "daviddata1357",
-  database: "stylish"
-});
-
-sql.connect(function(err) {
-  if (err) throw err;
-  console.log("Connected!");
-    
-}); */
-
-
-
-
 /* ---------------Route--------------- */
 app.get("/",(req, res) => {
 	res.render("index.pug");
 });
 
 app.get("/admin/product.html",(req, res) => {
-	
 	res.render("product.pug");
 });
 
@@ -106,8 +85,8 @@ app.get("/admin/checkout.html",(req, res) => {
 });
 
 
-/* ---------------Poduct API 1.0--------------- */
-//product input form
+/* ---------------API 1.0--------------- */
+/* ---------------Product input form--------------- */
 app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 1}, {name: "images", maxCount: 50}]), (req, res) => {
 	const productId = req.body.productId;
 	const title = req.body.title;
@@ -180,10 +159,25 @@ app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 
 	
 });
 
+/* ---------------Campaigns input form--------------- */
+app.post("/api/1.0/admin/campaigns", upload.single("picture"), (req, res) =>{
+	let productId = req.body.productId;
+	let picture = pathTransform(req.file.path);
+	let story = req.body.story;
+	console.log(productId, "\n", picture, "\n", story);
+	
+	//Insert campaigns table
+	sql.query(`INSERT INTO campaigns (product_id, picture_path, story) VALUES ('${productId}', '${picture}', '${story}')`, function (err, result) {
+		if (err) throw err;
+		console.log("1 record inserted(table campaigns), ID: " + result.insertId);
+	});
+	
+	res.redirect("/admin/campaign.html");
+	
+});
 
-
-//Product List API
-app.get("/api/1.0/products/search", async(req, res) => {
+/* ---------------Product Search API--------------- */
+app.get("/api/1.0/products/search", async (req, res) => {
 	let objectFin;
 	let arrayColors;
 	let arrayVariants = [];
@@ -201,20 +195,21 @@ app.get("/api/1.0/products/search", async(req, res) => {
 		totalItemNum = await sqlQuery(`SELECT COUNT(*) FROM product WHERE (title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%')`);
 		totalItemNum = totalItemNum[0]["COUNT(*)"];
 		console.log(totalItemNum);
-		
 		if (totalItemNum === 0) {
 			res.send(`Can not find ${keyword}.`);
 		}
-
+		
+		//ckeck paging
 		if (isNaN(paging)) {
 			paging = 0;
 		}
-
 		itemStartNum = paging*itemNumPerPage;
 		
+		//make colors array
 		arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product WHERE (product_id LIKE '%${keyword}%' OR title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%') LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
 		arrayColors = transformToArrayColors(arrayColors);
 		
+		//get product_id and send to variants
 		let temp = await sqlQuery(`SELECT product_id FROM product WHERE (product_id LIKE '%${keyword}%' OR title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%')`);
 		temp = temp.reduce((accumulator,currentValue) => {
 			//console.log(accumulator,"\n",currentValue.product_id);
@@ -223,6 +218,8 @@ app.get("/api/1.0/products/search", async(req, res) => {
 		},`"${temp[0].product_id}"`);
 		//console.log(temp);
 		//console.log(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id IN (${temp}) ORDER BY variant_id DESC`);
+		
+		//make variants array
 		let result1 = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id IN (${temp}) ORDER BY variant_id DESC`);
 		//console.log(result1);
 		result1 = transformToArrayVariants(result1);
@@ -230,6 +227,7 @@ app.get("/api/1.0/products/search", async(req, res) => {
 			arrayVariants.push(result1[i]);
 		};
 		
+		//make final array
 		arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product WHERE (product_id LIKE '%${keyword}%' OR title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%') LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
 		arrayAll = arrayAll.map((obj, index, array1) => {
 			obj.sizes = obj.sizes.split(",");						//change sizes string to array
@@ -243,6 +241,7 @@ app.get("/api/1.0/products/search", async(req, res) => {
 			return obj;
 		});
 		
+		//check for paging
 		paging = paging +1;
 		if (paging === Math.ceil(totalItemNum/itemNumPerPage)) {
 			objectFin = {data: arrayAll};
@@ -263,6 +262,7 @@ app.get("/api/1.0/products/search", async(req, res) => {
 	}
 });
 
+/* ---------------Product Details API--------------- */
 app.get("/api/1.0/products/details", async (req, res) => {
 	let objectFin;
 	let arrayColors;
@@ -278,12 +278,15 @@ app.get("/api/1.0/products/details", async (req, res) => {
 		console.log(num);
 		
 		if (num != 0) {
+			//make colors array
 			arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product WHERE product_id = "${id}"`);
 			arrayColors = transformToArrayColors(arrayColors);
-
+			
+			//make variants array
 			arrayVariants = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id = "${id}" ORDER BY variant_id DESC`);
 			arrayVariants = transformToArrayVariants(arrayVariants);
-
+			
+			//make final array
 			arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product WHERE product_id = "${id}"`);
 			arrayAll = arrayAll.map((obj, index, array1) => {
 				obj.sizes = obj.sizes.split(",");						//change sizes string to array
@@ -312,7 +315,8 @@ app.get("/api/1.0/products/details", async (req, res) => {
 	}
 });
 
-app.get("/api/1.0/products/:category", async(req, res) => {			//this route must under other products/ end point route
+/* ---------------Product List API--------------- */
+app.get("/api/1.0/products/:category", async (req, res) => {			//this route must under other products/ end point route
 	const category = req.params.category;
 	let objectFin;
 	let arrayColors;
@@ -332,22 +336,24 @@ app.get("/api/1.0/products/:category", async(req, res) => {			//this route must 
 	
 	try {
 		if (category === "all") {
-			console.log(1);
+			//ckeck paging
 			if (isNaN(paging)) {
 				paging = 0;
 			}
-
 			itemStartNum = paging*itemNumPerPage;
 			
+			//make colors array
 			arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
 			arrayColors = transformToArrayColors(arrayColors);
 			
+			//make variants array
 			let result1 = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants ORDER BY variant_id DESC`);
 			result1 = transformToArrayVariants(result1);
 			for (let i=itemStartNum ; i < (itemStartNum + itemNumPerPage) ;i++) {
 				arrayVariants.push(result1[i]);
 			};
 			
+			//make final array
 			arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
 			arrayAll = arrayAll.map((obj, index, array1) => {
 				obj.sizes = obj.sizes.split(",");						//change sizes string to array
@@ -366,6 +372,7 @@ app.get("/api/1.0/products/:category", async(req, res) => {			//this route must 
 			totalItemNum = totalItemNum[0]["COUNT(*)"];
 			console.log(totalItemNum);
 			
+			//check for paging
 			paging = paging +1;
 			if (paging === Math.ceil(totalItemNum/itemNumPerPage)) {
 				objectFin = {data: arrayAll};
@@ -383,16 +390,18 @@ app.get("/api/1.0/products/:category", async(req, res) => {			//this route must 
 			console.log(JSON.stringify(objectFin,null,4));
 		}
 		else if (category === "women" || category === "men" || category === "accessories") {
-			console.log(2);
+			
+			//ckeck paging
 			if (isNaN(paging)) {
 				paging = 0;
 			}
-
 			itemStartNum = paging*itemNumPerPage;
 			
+			//make colors array
 			arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product WHERE category = "${category}" LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
 			arrayColors = transformToArrayColors(arrayColors);
 			
+			//get product_id and send to variants
 			let temp = await sqlQuery(`SELECT product_id FROM product WHERE category = "${category}"`);
 			temp = temp.reduce((accumulator,currentValue) => {
 				//console.log(accumulator,"\n",currentValue.product_id);
@@ -400,12 +409,14 @@ app.get("/api/1.0/products/:category", async(req, res) => {			//this route must 
 				return accumulator;
 			},`"${temp[0].product_id}"`);
 			
+			//make variants array
 			let result1 = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id IN (${temp}) ORDER BY variant_id DESC`);
 			result1 = transformToArrayVariants(result1);
 			for (let i=itemStartNum ; i < (itemStartNum + itemNumPerPage) ;i++) {
 				arrayVariants.push(result1[i]);
 			};
 			
+			//make final array
 			arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product WHERE category = "${category}" LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
 			arrayAll = arrayAll.map((obj, index, array1) => {
 				obj.sizes = obj.sizes.split(",");						//change sizes string to array
@@ -424,6 +435,7 @@ app.get("/api/1.0/products/:category", async(req, res) => {			//this route must 
 			totalItemNum = totalItemNum[0]["COUNT(*)"];
 			console.log(totalItemNum);
 			
+			//check for paging
 			paging = paging +1;
 			if (paging === Math.ceil(totalItemNum/itemNumPerPage)) {
 				objectFin = {data: arrayAll};
@@ -449,19 +461,24 @@ app.get("/api/1.0/products/:category", async(req, res) => {			//this route must 
 	}
 });
 
-/* app.get("/api/1.0/products/women", (req, res) => {
-	res.send("women");
+/* ---------------Marketing Campaigns API--------------- */
+app.get("/api/1.0/marketing/campaigns", async (req, res) => {
+	let arrayCampaigns;
+	let objectFin;
+		
+	//make campaigns array
+	arrayCampaigns = await sqlQuery(`SELECT campaigns_id, product_id, picture_path AS picture, story FROM campaigns`);
+	
+	//transform correct format
+	arrayCampaigns = arrayCampaigns.map((obj, index, array1) => {
+		obj.picture = pathTransformNormal2(obj.picture)
+		return obj;
+	});
+	
+	objectFin = {data:arrayCampaigns};
+	res.send(objectFin);
+	
 });
-
-app.get("/api/1.0/products/men", (req, res) => {
-	res.send("men");
-});
-
-app.get("/api/1.0/products/accessories", (req, res) => {
-	res.send("accessories");
-}); */
-
-
 
 
 
@@ -498,6 +515,14 @@ function pathTransformNormal (str) {
 	newstr = newstr.replace("public","static");
 	return newstr;
 }
+
+//picture_path
+function pathTransformNormal2 (str) {
+	str = str.replace(/\\/g,"/");
+	str = str.replace("public","static");
+	return str;
+}
+
 
 //colors
 function transformToArrayColors (arr) {

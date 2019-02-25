@@ -3,3 +3,17 @@ extends layout.pug
 block content
     section#content
     h2 campaign
+    
+    form(action="/api/1.0/admin/campaigns", method="post", enctype="multipart/form-data")
+        div
+            label Product_id*
+                input(type="text", name="productId")
+        div
+            label Picture
+            div
+                input(type="file", name="picture")
+        div
+            label Story
+            div
+                textarea(name="story")
+        button(type="submit") Submit
