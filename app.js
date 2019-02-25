@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser");
 const multer  = require('multer');
 const mysql = require('mysql2');
 const Client = require('ssh2').Client;
+const request = require("request");
 
 const app = express();
 
@@ -65,6 +66,7 @@ ssh.on('ready', function() {
 
 /* ---------------Route--------------- */
 app.get("/",(req, res) => {
+	console.log("XXXXXXXXXXXXXXXXXXXXXXX");
 	res.render("index.pug");
 });
 
@@ -84,10 +86,36 @@ app.get("/admin/checkout.html",(req, res) => {
 	res.render("checkout");
 });
 
-app.get("/user-sign.html", (req, res) => {
+app.get("/test-post", (req, res) => {
+	// Set the headers
+	let headers = {
+		'User-Agent':       'Super Agent/0.0.1',
+		'Content-Type':     'application/json'
+	}
+	let data = {
+		"name":"test",
+		"email":"test@test.com",
+		"password":"test"
+	};
+	data = JSON.stringify(data);
 	
-});
+	// Configure the request
+	let options = {
+		url: 'http://localhost:3000/api/1.0/user/signup',
+		method: 'POST',
+		headers: headers,
+		form: data,
+	}
 
+	// Start the request
+	request(options, function (error, response, body) {
+		if (!error && response.statusCode == 200) {
+			// Print out the response body
+			console.log(body);
+		}
+	})
+	res.send("Post done.");
+});
 
 /* ---------------API 1.0--------------- */
 /* ---------------Product input form--------------- */
@@ -484,8 +512,18 @@ app.get("/api/1.0/marketing/campaigns", async (req, res) => {
 	
 });
 
+/* ---------------User Sign Up API--------------- */
+app.post("/api/1.0/user/signup", (req, res) => {
+	console.log("CCCCCCCCCCCCCCCCCCCC");
+	//console.log(req);
+	console.log(req.body);
+	console.log(req.headers['content-type']);
+});
 
-
+/* ---------------User Sign In API--------------- */
+app.post("/api/1.0/user/signup", (req, res) => {
+	
+});
 
 //Use Promise for MySQL .query()
 function sqlQuery (query1) {
