@@ -5,11 +5,14 @@ const cookieParser = require("cookie-parser");
 const multer  = require('multer');
 const mysql = require('mysql2');
 const Client = require('ssh2').Client;
+const request = require("request");
+const crypto = require('crypto');
 
 const app = express();
 
 //use bodyParser and cookieParser
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());								//receive POST request JOSN req.body
 app.use(cookieParser());
 
 //set pug
@@ -65,6 +68,7 @@ ssh.on('ready', function() {
 
 /* ---------------Route--------------- */
 app.get("/",(req, res) => {
+	console.log("XXXXXXXXXXXXXXXXXXXXXXX");
 	res.render("index.pug");
 });
 
@@ -82,6 +86,134 @@ app.get("/admin/checkout.html",(req, res) => {
 
 app.get("/admin/checkout.html",(req, res) => {
 	res.render("checkout");
+});
+
+app.get("/test-post", (req, res) => {
+	// Set the headers
+	let headers = {
+		'User-Agent':       'Super Agent/0.0.1',
+		'content-type':     'application/json'
+	}
+	let data = {
+		"name":"test12",
+		"email":"test12@test.com",
+		"password":"test12"
+	};
+	
+	// Configure the request
+	let options = {
+		url: 'http://localhost:3000/api/1.0/user/signup',
+		method: 'POST',
+		headers: headers,
+		json:data
+	}
+
+	// Start the request
+	request(options, (error, response, body) => {
+		if (!error && response.statusCode == 200) {
+			// Print out the response body
+			console.log(body);
+			res.send(body);
+		}
+	})
+	
+	
+	/*//test none JSON POST request
+	console.log("test none JSON POST request:");
+	request({
+			url: 'http://localhost:3000/api/1.0/user/signup',
+			method: 'POST',
+			headers: {'User-Agent':'Super Agent/0.0.1','content-type':'application/x-www-form-urlencoded'},
+			form:{test:"1",test2:"2"}
+		}, (e, r, b) => {
+			if (!e && r.statusCode == 200) {
+			console.log(b);
+		}
+	}); */
+	
+	//res.send("POST request done.");
+});
+
+app.get("/test-post2", (req, res) => {
+	// Set the headers
+	let headers = {
+		'User-Agent':       'Super Agent/0.0.1',
+		'content-type':     'application/json'
+	}
+	let data = {
+		"provider":"native",
+		"email":"test12@test.com",
+		"password":"test12"
+	};
+	
+	// Configure the request
+	let options = {
+		url: 'http://localhost:3000/api/1.0/user/signin',
+		method: 'POST',
+		headers: headers,
+		json:data
+	}
+
+	// Start the request
+	request(options, (error, response, body) => {
+		if (!error && response.statusCode == 200) {
+			// Print out the response body
+			console.log(body);
+			res.send(body);
+		}
+	})
+});
+
+app.get("/test-postfb", (req, res) => {
+	// Set the headers
+	let headers = {
+		'User-Agent':       'Super Agent/0.0.1',
+		'content-type':     'application/json'
+	}
+	let data = {
+		"provider":"facebook",
+		"access_token":"fortest",
+	};
+	
+	// Configure the request
+	let options = {
+		url: 'http://localhost:3000/api/1.0/user/signin',
+		method: 'POST',
+		headers: headers,
+		json:data
+	}
+
+	// Start the request
+	request(options, (error, response, body) => {
+		if (!error && response.statusCode == 200) {
+			// Print out the response body
+			console.log(body);
+			res.send(body);
+		}
+	})
+});
+
+app.get("/test-get-profile", (req, res) => {
+	// Set the headers
+	let headers = {
+		Authorization: "Bearer e8759f028be9829d24ad649ef5a08a251ed8425cce732464487f20bac502928f"
+	}
+
+	// Configure the request
+	let options = {
+		url: 'http://localhost:3000/api/1.0/user/profile',
+		method: 'GET',
+		headers: headers,
+	}
+
+	// Start the request
+	request(options, (error, response, body) => {
+		if (!error && response.statusCode == 200) {
+			// Print out the response body
+			console.log(body);
+			res.send(body);
+		}
+	})
 });
 
 
@@ -343,7 +475,7 @@ app.get("/api/1.0/products/:category", async (req, res) => {			//this route must
 			itemStartNum = paging*itemNumPerPage;
 			
 			//make colors array
-			arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
+			arrayColors =  sqlQuery(`SELECT color_codes, color_names FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
 			arrayColors = transformToArrayColors(arrayColors);
 			
 			//make variants array
@@ -480,6 +612,257 @@ app.get("/api/1.0/marketing/campaigns", async (req, res) => {
 	
 });
 
+/* ---------------User Sign Up API--------------- */
+app.post("/api/1.0/user/signup", async (req, res) => {
+	console.log(req.body);
+	//console.log(JSON.stringify(req.body));
+
+	
+	//check content-type
+	if (req.headers['content-type'] === 'application/json' && req.body.name != undefined && req.body.email != undefined && req.body.password != undefined) {
+		let name = req.body.name;
+		let email = req.body.email;
+		let password = req.body.password;
+		let provider = "native";
+		let picture = "";
+		
+		//check email from database
+		let userNum = await sqlQuery(`SELECT COUNT(*) FROM user WHERE email = "${email}"`);
+		userNum = userNum[0]["COUNT(*)"];
+		
+		if(userNum != 0) {
+			res.send(errorFormat(`${email} has been used.`));
+		}
+		else {
+			//create unique hash token
+			let hash = crypto.createHash("sha256");
+			let date = Date.now();
+			hash.update(`${date}`);
+			let accessToken = hash.digest("hex");
+			let accessTokenExpired = date + 86400000;			//set one day expired
+			
+			console.log(provider,"\n",name,"\n",email,"\n",password,"\n",picture,"\n",accessToken,"\n",accessTokenExpired);
+			//insert database
+			let result1 = await sqlQuery(`INSERT INTO user (provider, name, email, password, picture, access_token, access_expired) VALUES ('${provider}', '${name}', '${email}', "${password}", "${picture}", "${accessToken}", "${accessTokenExpired}")`);
+			let id = result1.insertId;
+			console.log("1 record inserted(table user), ID: " + result1.insertId);
+			
+			//create response object
+			let objectFin = {};
+			objectFin["access_token"] = accessToken;
+			objectFin["access_expired"] = accessTokenExpired;
+			objectFin["user"] = {
+				id: id,
+				provider: provider,
+				name: name,
+				email: email,
+				picture: picture
+			};
+			objectFin = dataFormat(objectFin);
+				
+			res.send(objectFin);
+		}
+		
+	}
+	else {
+		res.send(errorFormat("POST request is rejected, check list: 1.'content-type' must be 'application/json'. 2.Something wrong with name, email or password."));		
+	}	
+});
+
+/* ---------------User Sign In API--------------- */
+app.post("/api/1.0/user/signin", async (req, res) => {
+	console.log(req.body);
+	
+	//check content-type
+	if (req.headers['content-type'] === 'application/json') {
+		let provider = req.body.provider;
+		let email = req.body.email;
+		let password = req.body.password;
+		let accessTokenFB = req.body["access_token"];
+		
+		//check provider
+		if (provider === "native") {
+			//check email and password
+			if(email === undefined || password === undefined || email === "" || password === "") {
+				res.send(dataFormat("email and password are required."));
+			}
+			else {
+				//check email from database
+				let userNum = await sqlQuery(`SELECT COUNT(*) FROM user WHERE email = "${email}"`);
+				userNum = userNum[0]["COUNT(*)"];
+				
+				if(userNum === 0) {
+					res.send(errorFormat(`${email} has not found.`));
+				}
+				else {
+					//check password
+					let result3 = await sqlQuery(`SELECT password FROM user WHERE email = "${email}"`);
+					result3 = result3[0].password;
+					
+					if (result3 === password) {
+						//succeed sign in
+						//create unique hash token
+						let hash = crypto.createHash("sha256");
+						let date = Date.now();
+						hash.update(`${date}`);
+						let accessToken = hash.digest("hex");
+						let accessTokenExpired = date + 86400000;			//set one day expired
+						
+						//update token and expired
+						let result1 = await sqlQuery(`UPDATE user SET access_token = "${accessToken}", access_expired = "${accessTokenExpired}" WHERE email = "${email}"`);
+						console.log(result1.affectedRows + " record(s) updated");
+						
+						//get id, name and picture
+						let result2 = await sqlQuery(`SELECT id, name, picture FROM user WHERE email = "${email}"`);
+						let id = result2[0].id;
+						let name = result2[0].name;
+						let picture = result2[0].picture;
+						
+						//create response object
+						let objectFin = {};
+						objectFin["access_token"] = accessToken;
+						objectFin["access_expired"] = accessTokenExpired;
+						objectFin["user"] = {
+							id: id,
+							provider: provider,
+							name: name,
+							email: email,
+							picture: picture
+						};
+						objectFin = dataFormat(objectFin);
+						
+						res.send(objectFin);
+					}
+					else {
+						res.send(errorFormat("Wrong password."));
+					}
+				}
+			}
+		}
+		else if (provider === "facebook") {
+			//check FB token
+			if (accessTokenFB === undefined || accessTokenFB === "") {
+				res.send(errorFormat("access_token is required."));
+			}
+			else {
+				//check FB token with database
+				let result1 = await sqlQuery(`SELECT COUNT(*) FROM user WHERE access_token_fb = "${accessTokenFB}"`);
+				result1 = result1[0]["COUNT(*)"];
+				console.log(result1);
+				
+				if(result1 === 0) {
+					//get user profile from FB
+					
+					//check user profile with database
+						//if exist update FB token
+						//if not create new user
+					
+				}
+				else {
+					//succeed sign in
+					//create unique hash token
+					let hash = crypto.createHash("sha256");
+					let date = Date.now();
+					hash.update(`${date}`);
+					let accessToken = hash.digest("hex");
+					let accessTokenExpired = date + 86400000;			//set one day expired
+					
+					//update token and expired
+					let result2 = await sqlQuery(`UPDATE user SET access_token = "${accessToken}", access_expired = "${accessTokenExpired}" WHERE access_token_fb = "${accessTokenFB}"`);
+					console.log(result2.affectedRows + " record(s) updated");
+						
+					//get id, name and picture
+					let result3 = await sqlQuery(`SELECT id, name, email, picture FROM user WHERE access_token_fb = "${accessTokenFB}"`);
+					let id = result3[0].id;
+					let name = result3[0].name;
+					let email = result3[0].email;		//add email
+					let picture = result3[0].picture;
+					
+					//create response object
+					let objectFin = {};
+					objectFin["access_token"] = accessToken;
+					objectFin["access_expired"] = accessTokenExpired;
+					objectFin["user"] = {
+						id: id,
+						provider: provider,
+						name: name,
+						email: email,		//add email
+						picture: picture
+					};
+					objectFin = dataFormat(objectFin);
+					
+					res.send(objectFin);
+				}
+				
+			}
+		}
+		else {
+			res.send(errorFormat("unknown provider."));
+		}	
+	}
+	else {
+		res.send(errorFormat("POST request is rejected, check list: 1.'content-type' must be 'application/json'. 2.Something wrong with name, email or password."));		
+	}
+});
+
+/* ---------------User Profile API--------------- */
+app.get("/api/1.0/user/profile", async (req, res) => {
+	console.log(req.headers);
+	let authorization = req.headers.authorization;
+	
+	//check authorization
+	if (authorization) {
+		authorization = authorization.split(" ");
+		console.log(authorization);
+		
+		//check Bearer
+		if(authorization[0] === "Bearer") {
+			//check token and expired date in database
+			let result1 = await sqlQuery(`SELECT COUNT(*) FROM user WHERE access_token = "${authorization[1]}"`);
+			result1 = result1[0]["COUNT(*)"];
+			let result2 = await sqlQuery(`SELECT access_expired FROM user WHERE access_token = "${authorization[1]}"`);
+			result2 = result2[0]["access_expired"];
+			console.log(result1, result2, Date.now());
+			
+			if (result1 != 0) {
+				if (Date.now() < result2) {
+					//succeed
+					//get id, provider, name, email and picture
+					let result3 = await sqlQuery(`SELECT id, provider, name, email, picture FROM user WHERE access_token = "${authorization[1]}"`);
+					let id = result3[0].id;
+					let provider = result3[0].provider;
+					let name = result3[0].name;
+					let email = result3[0].email;
+					let picture = result3[0].picture;
+					
+					//create response object
+					let objectFin = {
+						id: id,
+						provider: provider,
+						name: name,
+						email: email,
+						picture: picture
+					};
+					objectFin = dataFormat(objectFin);
+					
+					res.send(objectFin);
+				}
+				else {
+					res.send(errorFormat("expired token."));
+				}
+			}
+			else {
+				res.send(errorFormat("Wrong token."));
+			}			
+		}
+		else {
+			res.send(errorFormat("Please use Bearer schemes."));
+		}
+	}
+	else {
+		res.send(errorFormat("authorization is required."));
+	}
+});
 
 
 
@@ -618,6 +1001,20 @@ function createArrayAll () {
 	}
 }
  */
+
+
+/* ---------------Response Format--------------- */
+//data format
+function dataFormat (str) {
+	str = {data: str};
+	return JSON.stringify(str);
+}
+
+//error massage format
+function errorFormat (str) {
+	str = {error: str};
+	return JSON.stringify(str);
+}
 
 
 /* ---------------Error--------------- */
