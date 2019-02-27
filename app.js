@@ -95,14 +95,14 @@ app.get("/test-post", (req, res) => {
 		'content-type':     'application/json'
 	}
 	let data = {
-		"name":"test12",
-		"email":"test12@test.com",
-		"password":"test12"
+		"name":"test13",
+		"email":"test13@test.com",
+		"password":"test13"
 	};
 	
 	// Configure the request
 	let options = {
-		url: 'http://localhost:3000/api/1.0/user/signup',
+		url: 'http://52.15.89.192/api/1.0/user/signup',
 		method: 'POST',
 		headers: headers,
 		json:data
@@ -142,13 +142,13 @@ app.get("/test-post2", (req, res) => {
 	}
 	let data = {
 		"provider":"native",
-		"email":"test12@test.com",
-		"password":"test12"
+		"email":"test13@test.com",
+		"password":"test13"
 	};
 	
 	// Configure the request
 	let options = {
-		url: 'http://localhost:3000/api/1.0/user/signin',
+		url: 'http://52.15.89.192/api/1.0/user/signin',
 		method: 'POST',
 		headers: headers,
 		json:data
@@ -177,7 +177,7 @@ app.get("/test-postfb", (req, res) => {
 	
 	// Configure the request
 	let options = {
-		url: 'http://localhost:3000/api/1.0/user/signin',
+		url: 'http://52.15.89.192/api/1.0/user/signin',
 		method: 'POST',
 		headers: headers,
 		json:data
@@ -196,7 +196,7 @@ app.get("/test-postfb", (req, res) => {
 app.get("/test-get-profile", (req, res) => {
 	// Set the headers
 	let headers = {
-		Authorization: "Bearer e8759f028be9829d24ad649ef5a08a251ed8425cce732464487f20bac502928f"
+		Authorization: "Bearer 9721a07e841e440bc884cb39292dfb216c0e018e0595ed6d40c6464c986a7163"
 	}
 
 	// Configure the request
@@ -813,18 +813,17 @@ app.get("/api/1.0/user/profile", async (req, res) => {
 	//check authorization
 	if (authorization) {
 		authorization = authorization.split(" ");
-		console.log(authorization);
-		
+		console.log(authorization, authorization[0], authorization[1]);
 		//check Bearer
 		if(authorization[0] === "Bearer") {
-			//check token and expired date in database
 			let result1 = await sqlQuery(`SELECT COUNT(*) FROM user WHERE access_token = "${authorization[1]}"`);
 			result1 = result1[0]["COUNT(*)"];
-			let result2 = await sqlQuery(`SELECT access_expired FROM user WHERE access_token = "${authorization[1]}"`);
-			result2 = result2[0]["access_expired"];
-			console.log(result1, result2, Date.now());
-			
+			//check token in database
 			if (result1 != 0) {
+				let result2 = await sqlQuery(`SELECT access_expired FROM user WHERE access_token = "${authorization[1]}"`);
+				result2 = result2[0]["access_expired"];
+				console.log(result1, result2, Date.now());
+				//check expired date in database
 				if (Date.now() < result2) {
 					//succeed
 					//get id, provider, name, email and picture
