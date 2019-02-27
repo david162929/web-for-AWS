@@ -201,7 +201,7 @@ app.get("/test-get-profile", (req, res) => {
 
 	// Configure the request
 	let options = {
-		url: 'http://localhost:3000/api/1.0/user/profile',
+		url: 'http://52.15.89.192/api/1.0/user/profile',
 		method: 'GET',
 		headers: headers,
 	}
