@@ -177,7 +177,7 @@ app.get("/test-postfb", (req, res) => {
 	
 	// Configure the request
 	let options = {
-		url: 'http://localhost:3000/api/1.0/user/signin',
+		url: 'http://52.15.89.192/api/1.0/user/signin',
 		method: 'POST',
 		headers: headers,
 		json:data
