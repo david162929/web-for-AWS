@@ -102,7 +102,7 @@ app.get("/test-post", (req, res) => {
 	
 	// Configure the request
 	let options = {
-		url: 'http://52.15.89.192/api/1.0/user/signup',
+		url: 'http://localhost:3000/api/1.0/user/signup',
 		method: 'POST',
 		headers: headers,
 		json:data
@@ -148,7 +148,7 @@ app.get("/test-post2", (req, res) => {
 	
 	// Configure the request
 	let options = {
-		url: 'http://52.15.89.192/api/1.0/user/signin',
+		url: 'http://localhost:3000/api/1.0/user/signin',
 		method: 'POST',
 		headers: headers,
 		json:data
@@ -172,12 +172,12 @@ app.get("/test-postfb", (req, res) => {
 	}
 	let data = {
 		"provider":"facebook",
-		"access_token":"fortest",
+		"access_token":"EAAFqxw9GAHQBALUQqQI3QrSIyWMSJj2d7MkWmun2bO7NkZBZBCdYalxIZAt7cOZBeVeXSBryFA06AZBZAsHFBHhhTXbwf4myDpkCc0zKWcjicYDj6sNu2OzGhQy6scuyGZBzfOBVcvyumxzmQgMwqdB36zuoM8DsBLR9NiIfMyTyo0rlOQUmQWj8vpiPJzGubb0ilpT8hZCWEwZDZD",
 	};
 	
 	// Configure the request
 	let options = {
-		url: 'http://52.15.89.192/api/1.0/user/signin',
+		url: 'http://localhost:3000/api/1.0/user/signin',
 		method: 'POST',
 		headers: headers,
 		json:data
@@ -201,9 +201,30 @@ app.get("/test-get-profile", (req, res) => {
 
 	// Configure the request
 	let options = {
-		url: 'http://52.15.89.192/api/1.0/user/profile',
+		url: 'http://localhost:3000/api/1.0/user/profile',
 		method: 'GET',
 		headers: headers,
+	}
+
+	// Start the request
+	request(options, (error, response, body) => {
+		if (!error && response.statusCode == 200) {
+			// Print out the response body
+			console.log(body);
+			res.send(body);
+		}
+	})
+	
+/* 	let x = HttpRequest(headers, options);
+	console.log(x);
+	res.send(x); */	
+});
+
+app.get("/test-get-fb", (req, res) => {
+	// Configure the request
+	let options = {
+		url: "https://graph.facebook.com/v3.2/me?fields=id%2Cname%2Cemail&access_token=EAAFqxw9GAHQBAOLiCmAZC65ZAHVIk0vcq8OjKCvB0BfRLQ9noOZBbjrFPLcT6krFskMtkE6T7YhZAeoDjkERZBrSiStavoOtIy5cEPQH08S2bc8TIurd0tF5RYVZB9j1rrViv9hXHOQKPUeorT5vP0CDbCnCxJNvQ8iVpl0SQHae7VEXqYnwSWvD7LK0Gj6ZBZBXcZAntU7xNgAZDZD",
+		method: 'GET',
 	}
 
 	// Start the request
@@ -751,14 +772,101 @@ app.post("/api/1.0/user/signin", async (req, res) => {
 				console.log(result1);
 				
 				if(result1 === 0) {
+					console.log("FB token is new. get FB data.");
 					//get user profile from FB
+					console.log("get user profile from FB");
+
+					let options = {
+						url: `https://graph.facebook.com/v3.2/me?fields=id%2Cname%2Cemail&access_token=${accessTokenFB}`,
+						method: 'GET',
+					}
 					
-					//check user profile with database
-						//if exist update FB token
-						//if not create new user
-					
+					request(options, async (error, response, body) => {
+						if (!error && response.statusCode == 200) {
+							body = JSON.parse(body);
+							console.log(body, body.name, body.email);
+							email = body.email;
+							name = body.name;
+							
+							//check user profile with database
+							let dataFB = await sqlQuery(`SELECT COUNT(*) FROM user WHERE email = "${body.email}"`);
+							dataFB = dataFB[0]["COUNT(*)"];
+							console.log(dataFB);
+							if (dataFB != 0) {
+								console.log("you are old user, update your FB token.");
+								//if exist update FB token
+								//create unique hash token
+								let hash = crypto.createHash("sha256");
+								let date = Date.now();
+								hash.update(`${date}`);
+								let accessToken = hash.digest("hex");
+								let accessTokenExpired = date + 86400000;			//set one day expired
+								
+								//update token, expired and FB token
+								let result2 = await sqlQuery(`UPDATE user SET access_token = "${accessToken}", access_expired = "${accessTokenExpired}", access_token_fb = "${accessTokenFB}" WHERE email = "${email}"`);
+								console.log(result2.affectedRows + " record(s) updated");
+								
+								//get id and picture
+								let result3 = await sqlQuery(`SELECT id, picture FROM user WHERE email = "${email}"`);
+								let id = result3[0].id;
+								let picture = result3[0].picture;
+								
+								//create response object
+								let objectFin = {};
+								objectFin["access_token"] = accessToken;
+								objectFin["access_expired"] = accessTokenExpired;
+								objectFin["user"] = {
+									id: id,
+									provider: provider,
+									name: name,
+									email: email,
+									picture: picture
+								};
+								objectFin = dataFormat(objectFin);
+								
+								res.send(objectFin);
+
+							}
+							else {
+								console.log("you are new user, insert your new data.");
+								//if not create new user
+								//create unique hash token
+								let hash = crypto.createHash("sha256");
+								let date = Date.now();
+								hash.update(`${date}`);
+								let accessToken = hash.digest("hex");
+								let accessTokenExpired = date + 86400000;			//set one day expired
+									
+								//insert database
+								let picture = "";
+								console.log(provider,"\n",name,"\n",email,"\n",picture,"\n",accessToken,"\n",accessTokenExpired);
+								let result2 = await sqlQuery(`INSERT INTO user (provider, name, email, picture, access_token, access_expired, access_token_fb) VALUES ('${provider}', '${name}', '${email}', "${picture}", "${accessToken}", "${accessTokenExpired}", "${accessTokenFB}")`);
+								let id = result2.insertId;
+								console.log("1 record inserted(table user), ID: " + result2.insertId);
+								
+								//create response object
+								let objectFin = {};
+								objectFin["access_token"] = accessToken;
+								objectFin["access_expired"] = accessTokenExpired;
+								objectFin["user"] = {
+									id: id,
+									provider: provider,
+									name: name,
+									email: email,
+									picture: picture
+								};
+								objectFin = dataFormat(objectFin);
+								
+								res.send(objectFin);
+							}
+						}
+						else {
+							res.send(error);
+						}
+					});
 				}
 				else {
+					console.log("FB token already storage. send user profile.");
 					//succeed sign in
 					//create unique hash token
 					let hash = crypto.createHash("sha256");
@@ -864,7 +972,7 @@ app.get("/api/1.0/user/profile", async (req, res) => {
 });
 
 
-
+/* ---------------Promise--------------- */
 //Use Promise for MySQL .query()
 function sqlQuery (query1) {
 	return new Promise ((reso, rej) => {
@@ -878,6 +986,21 @@ function sqlQuery (query1) {
 		});
 	});
 };
+
+//Use Promise for request
+function HttpRequest (headers, options) {
+	options.headers = headers;
+
+	request(options, (error, response, body) => {
+		if (!error && response.statusCode == 200) {
+			return body;
+		}
+	})
+}
+
+
+
+
 
 /* replace all "\\" to "\\\\",prevent been escaped when INSERT INTO MySQL */
 function pathTransform (str) {
