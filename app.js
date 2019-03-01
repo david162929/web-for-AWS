@@ -7,6 +7,7 @@ const mysql = require('mysql2');
 const Client = require('ssh2').Client;
 const request = require("request");
 const crypto = require('crypto');
+const fs = require('fs');
 
 const app = express();
 
@@ -68,7 +69,6 @@ ssh.on('ready', function() {
 
 /* ---------------Route--------------- */
 app.get("/",(req, res) => {
-	console.log("XXXXXXXXXXXXXXXXXXXXXXX");
 	res.render("index.pug");
 });
 
@@ -80,13 +80,58 @@ app.get("/admin/campaign.html",(req, res) => {
 	res.render("campaign");
 });
 
-app.get("/admin/checkout.html",(req, res) => {
-	res.render("checkout");
+app.get("/admin/checkout.html", function(req, res, next) {
+    let html = fs.readFileSync('./public/html/checkout.html', 'utf8')
+    res.send(html);
+})
+app.get("/test",(req, res) => {
+	// Set the headers
+	let headers = {
+		'content-type':     'application/json',
+		'x-api-key': 'partner_PHgswvYEk4QY6oy3n8X3CwiQCVQmv91ZcFoD5VrkGFXo8N7BFiLUxzeG'
+	}
+	let data = {
+		"prime": "0d593d5d87174d208135370533b15a6ee5797448433a053b4bedd3953a0dace1",
+		"partner_key": "partner_PHgswvYEk4QY6oy3n8X3CwiQCVQmv91ZcFoD5VrkGFXo8N7BFiLUxzeG",
+		"merchant_id": "AppWorksSchool_CTBC",
+		"details":"TapPay Test",
+		"amount": "1",
+		"order_number": "123",
+		"cardholder": {
+			"phone_number": "+886923456789",
+			"name": "testtt",
+			"email": "testtt@Doe.com"
+		},
+		"remember": false
+	};
+	
+	// Configure the request
+	let options = {
+		url: 'https://sandbox.tappaysdk.com/tpc/payment/pay-by-prime',
+		method: 'POST',
+		headers: headers,
+		json:data
+	}
+	
+	
+	// Start the request
+	request(options, (error, response, body) => {
+		if (!error && response.statusCode == 200) {
+			// Print out the response body
+			console.log(body);
+			res.send(body);
+		}
+	})
 });
 
-app.get("/admin/checkout.html",(req, res) => {
-	res.render("checkout");
+app.post("/test",(req, res) => {
+	console.log(req.body);
+	
+	res.send("post OK.");
 });
+
+
+
 
 app.get("/test-post", (req, res) => {
 	// Set the headers
@@ -177,7 +222,7 @@ app.get("/test-postfb", (req, res) => {
 	
 	// Configure the request
 	let options = {
-		url: 'http://52.15.89.192/api/1.0/user/signin',
+		url: 'http://localhost:3000/api/1.0/user/signin',
 		method: 'POST',
 		headers: headers,
 		json:data
@@ -970,6 +1015,88 @@ app.get("/api/1.0/user/profile", async (req, res) => {
 		res.send(errorFormat("authorization is required."));
 	}
 });
+
+/* ---------------Order Check Out API--------------- */
+app.post("/api/1.0/order/checkout", async (req, res) => {
+	console.log(req.body);
+	
+	//check content-type
+	if (req.headers['content-type'] === 'application/json') {
+		let prime = req.body.prime;
+		let shipping = req.body.order.shipping;
+		let payment = req.body.order.payment;
+		let subtotal = req.body.order.subtotal;
+		let freight = req.body.order.freight;
+		let total = req.body.order.total;
+		let name = req.body.order.recipient.name;
+		let phone = req.body.order.recipient.phone;
+		let email = req.body.order.recipient.email;
+		let address = req.body.order.recipient.address;
+		let time = req.body.order.recipient.time;
+		let list = JSON.stringify(req.body.order.list);
+		let orderStatus = "unpaid";
+		
+		//INSERT orders database
+		let result1 = await sqlQuery(`INSERT INTO orders (prime, shipping, payment, subtotal, freight, total, recipient_name, recipient_phone, recipient_email, recipient_address, recipient_time, list, order_status) VALUES ("${prime}", "${shipping}", "${payment}", ${subtotal}, ${freight}, ${total}, "${name}", "${phone}", "${email}", "${address}", "${time}", '${list}', "${orderStatus}")`);
+		let id = result1.insertId;
+		console.log("1 record inserted(table user), ID: " + result1.insertId);
+		
+		//access to TapPay server and check info
+		let headers = {
+			'content-type':     'application/json',
+			'x-api-key': 'partner_PHgswvYEk4QY6oy3n8X3CwiQCVQmv91ZcFoD5VrkGFXo8N7BFiLUxzeG'
+		}
+		let data = {
+			"prime": prime,
+			"partner_key": "partner_PHgswvYEk4QY6oy3n8X3CwiQCVQmv91ZcFoD5VrkGFXo8N7BFiLUxzeG",
+			"merchant_id": "AppWorksSchool_CTBC",
+			"details":"TapPay Test",
+			"amount": "1",
+			"order_number": id,
+			"cardholder": {
+				"phone_number": phone,
+				"name": name,
+				"email": email
+			},
+			"remember": false
+		};
+		let options = {
+			url: 'https://sandbox.tappaysdk.com/tpc/payment/pay-by-prime',
+			method: 'POST',
+			headers: headers,
+			json:data
+		}
+		request(options, async (error, response, body) => {
+			if (!error && response.statusCode == 200) {
+				console.log(body);
+				
+				//record info from TapPay server
+				let tappayServerReturn = JSON.stringify(body);
+				let result2 = await sqlQuery(`UPDATE orders SET tappay_server_return = '${tappayServerReturn}' WHERE id = ${id}`);
+				console.log(result2.affectedRows + " record(s) updated (tappay_server_return)");
+				
+				//check status
+				if (body.status === 0) {
+					//succeed
+					orderStatus = "paid off";
+					let result3 = await sqlQuery(`UPDATE orders SET order_status = "${orderStatus}" WHERE id = ${id}`);
+					console.log(result3.affectedRows + " record(s) updated (order_status)");
+					
+					res.send(dataFormat({"number":`${id}`}));
+				}
+				else {
+					//failed
+					res.send(errorFormat("paid failed."));
+				}
+			}
+		});
+	}
+	else {
+		res.send(errorFormat("content-type only accept application/json."));
+	}
+});
+
+
 
 
 /* ---------------Promise--------------- */
