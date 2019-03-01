@@ -311,7 +311,7 @@
 					order: order
 				};
 				
-				fetch ("http://localhost:3000/api/1.0/order/checkout", {headers: {'Content-Type': 'application/json'},method: "post", body:JSON.stringify(reqBody)})
+				fetch ("http://52.15.89.192/api/1.0/order/checkout", {headers: {'Content-Type': 'application/json'},method: "post", body:JSON.stringify(reqBody)})
 				.then( (res) => {
 					if (!res.ok) throw new Error(res.statusText);		//check status
 					return res.text();
