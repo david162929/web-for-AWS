@@ -1,0 +1,74 @@
+doctype html
+html(lang='zh-TW')
+    head
+        meta(charset='UTF-8')
+        meta(name='viewport', content='width=device-width, initial-scale=1.0')
+        title STYLiSH
+        link(href='https://fonts.googleapis.com/css?family=Varela+Round', rel='stylesheet', type='text/css')
+        link(rel='stylesheet', href='static/css/normalize.css')
+        link(rel='stylesheet', href='static/css/style.css')
+        link(rel='stylesheet', href='static/css/style-product.css')
+        script.
+            function add() {
+                let num = document.getElementById("productNum");
+                num = parseInt(num.value);
+                if (isNaN(num)) {
+                    num = 1;
+                }
+                num += 1;
+                document.getElementById("productNum").value = num;
+            }
+            function remove() {
+                let num = document.getElementById("productNum");
+                num = parseInt(num.value);
+                if (isNaN(num)) {
+                    num = 1;
+                }
+                if (num > 1) {
+                    num += -1;
+                }
+                document.getElementById("productNum").value = num;
+            }
+    body
+        include includes/nav.pug
+        .all-layout
+            section#product-content
+                .content-left
+                    img.product-main-image(src=`${arrayAll0}`, alt='product-main-image')
+                .content-right
+                    h2 #{arrayAll1}
+                    p #{arrayAll2}
+                    h3 TWD.#{arrayAll3}
+                    ul
+                        li
+                            p.product-property 顏色
+                            .colors-list !{arrayAll4}
+
+                        li
+                            p.product-property 尺寸
+                            .size-list !{arrayAll5}
+
+                        li
+                            p.product-property 數量
+                            .product-num-input
+                                button.button-remove(type='button', onclick='remove()') -
+                                input#productNum(type='text', name='num', value='1')
+                                button.button-add(type='button', onclick='add()') +
+                    button.add-cart-button(type='submit') 加入購物車
+                    .product-info
+                        p !{arrayAll6}
+                        p !{arrayAll7}
+
+                        p !{arrayAll8}
+
+            section#product-detail
+                div
+                    h3 細部說明
+                    .product-detail-line
+                div
+                    p #{arrayAll9}
+
+                    img.product-image-1(src=`${arrayAll10}`, alt='product-image-1')
+                div
+                    img.product-image-2(src=`${arrayAll11}`, alt='product-image-2')
+        include includes/footer.pug

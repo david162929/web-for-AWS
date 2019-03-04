@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>STYLiSH</title>
+		<link href='https://fonts.googleapis.com/css?family=Varela+Round' rel='stylesheet' type='text/css'>
+		<link rel="stylesheet" href="static/css/normalize.css">
+		<link rel="stylesheet" href="static/css/style.css">
+		<link rel="stylesheet" href="static/css/style-product.css">
+		<script>
+			function add() {
+				let num = document.getElementById("productNum");
+				num = parseInt(num.value);
+				if (isNaN(num)) {
+					num = 1;
+				}
+				num += 1;
+				document.getElementById("productNum").value = num;
+				
+			}
+			
+			function remove() {
+				let num = document.getElementById("productNum");
+				num = parseInt(num.value);
+				if (isNaN(num)) {
+					num = 1;
+				}
+				if (num > 1) {
+					num += -1;
+				}
+				document.getElementById("productNum").value = num;
+				
+			}
+		</script>
+		
+	</head>
+	<body>
+		<header class="nav clearfix">
+			<h1 class="website-title"><a href="#">STYLiSH</a></h1>
+			<img class="logo" src="static/images/logo.png" alt="logo">
+			<nav>
+				<ul class="nav-category">
+					<li><a class="category" href="#">女裝</a></li>
+					<li><a class="category" href="#">男裝</a></li>
+					<li><a href="#">配件</a></li>
+				</ul>
+				<ul class="nav-icon">
+					<li>
+						<a href="#"><img class="member-icon" src="static/images/member.png" alt="member-icon"></a>
+					</li>
+					<li><a href="#"><img class="cart-icon" src="static/images/cart.png" alt="cart-icon"></a></li>
+					<li>
+						<div class="nav-search">
+							<input class="search-input" type="text">
+							<a href="#"><img class="search-icon" src="static/images/search.png" alt="search-icon"></a>			
+						</div>
+					</li>
+				</ul>
+			</nav>
+			
+		</header><!--/.nav--> 
+
+		<div class="all-layout">
+			<section id="product-content">
+				<div class="content-left">
+					<img class="product-main-image" src="static/images/201807201824/main.jpg" alt="product-main-image">
+				</div>
+				<div class="content-right">
+					<h2>前開衩扭結洋裝</h2>
+					<p>1</p>
+					<h3>TWD.590</h3>
+					<ul>
+						<li>
+							<p class="product-property">顏色</p>
+							<div class="colors-list">
+								<div class="square colorB"></div>
+								<div class="square colorC"></div>
+							</div>
+						</li>
+						
+						<li>
+							<p class="product-property">尺寸</p>
+							<div class="size-list">
+								<div class="circle"><p>S</p></div>
+								<div class="circle"><p>M</p></div>
+								<div class="circle"><p>L</p></div>
+								<div class="circle"><p>XL</p></div>
+							</div>
+							
+						</li>
+						<li>
+							<p class="product-property">數量</p>
+							<div class="product-num-input">
+								<button class="button-remove" type="button" onclick="remove()">-</button>
+								<input type="text" id="productNum" name="num" value="1">
+								<button class="button-add" type="button" onclick="add()">+</button>
+							</div>
+						</li>
+					</ul>
+					<button class="add-cart-button" type="submit">加入購物車</button>
+					<div class="product-info">
+						<p>*實品顏色依單品照為主</p>
+						<p>棉 100%<br>厚薄：薄<br>彈性：無</p>
+						<p>素材產地/中國<br>加工產地/中國</p>
+					</div>
+				</div>	
+			</section>
+			<section id="product-detail">
+				<div>
+					<h3>細部說明</h3>
+					<div class="product-detail-line"></div>
+				</div>
+				<div>
+					<p>O.N.S is all about options, which is why we took our staple polo shirt and upgraded it with slubby linen jersey, making it even lighter for those who prefer their summer style extra-breezy.</p>
+					<img class="product-image-1" src="static/images/201807201824/0.jpg" alt="product-image-1">
+				
+				</div>
+				<div>
+					
+					<img class="product-image-2" src="static/images/201807201824/1.jpg" alt="product-image-2">
+				
+				</div>
+			</section>
+		</div>
+		
+		
+		
+		<footer class="footer clearfix">
+			<nav>
+				<ul class="nav-footer-item">
+					<li><a class="category-footer" href="#">關於Stylish</a></li>
+					<li><a class="category-footer" href="#">服務條款</a></li>
+					<li><a class="category-footer" href="#">隱私政策</a></li>
+					<li><a class="category-footer" href="#">聯絡我們</a></li>
+					<li><a class="category-footer" href="#">FAQ</a></li>
+				</ul>
+				<ul class="nav-footer-icon">
+					<li>
+						<div><span>&copy;2019. All rights reserved.</span></div>
+					</li>
+					<li>
+						<a href="#"><img class="facebook-icon" src="static/images/facebook.png" alt="facebook-icon"></a>
+					</li>
+					<li>
+						<a href="#"><img class="twitter-icon" src="static/images/twitter.png" alt="twitter-icon"></a>
+					</li>
+					<li>
+						<a href="#"><img class="line-icon" src="static/images/line.png" alt="line-icon"></a>			
+					</li>
+
+				</ul>
+			</nav>
+		</footer>
+	</body>
+</html>

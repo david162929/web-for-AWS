@@ -68,16 +68,121 @@ ssh.on('ready', function() {
 }); 
 
 /* ---------------Route--------------- */
-app.get("/",(req, res) => {
-	res.render("index.pug");
+app.get("/", async (req, res) => {
+	//get product info
+	let result2 = await sqlQuery(`SELECT * FROM product WHERE id IN (47,48,49,50,51,52)`);
+	let arrayAll = [];
+	for (let i=0; i<6; i++) {
+		arrayAll.push(pathTransformNormal2(result2[i].main_image_path));
+		let colorOne = result2[i].color_codes;
+		colorOne = colorOne.replace(/,/g, "'></div><div class='square ");
+		colorOne = "<div class='square " + colorOne + "'></div>";
+		arrayAll.push(colorOne);
+		arrayAll.push(result2[i].title);
+		arrayAll.push(result2[i].price);
+	}
+
+	//create object to set variable in pug
+	objectFin = {};
+	for (let i=0; i<24; i++) {
+		objectFin[`arrayAll${i}`] = arrayAll[i];
+	}
+
+	
+	//get campaign info
+	let result1 = await sqlQuery(`SELECT * FROM campaigns WHERE campaigns_id IN (6,7,8)`);
+	result1 = result1[0].story;
+	result1 = result1.replace(/ /g, "<br>");
+	result1 = "<h2>" + result1 + "<h2>";
+	console.log(result1);
+	objectFin.result1 = result1;
+		
+	res.render("index.pug", objectFin);
 });
+
+/* app.get("/testindex",(req, res) => {
+	let html = fs.readFileSync("./public/html/index.html", "utf8");
+	res.send(html);
+}); */
+
+/* 
+app.get("/product.html",(req, res) => {
+	let id = req.query.id;
+	console.log(id);
+	
+	let html = fs.readFileSync("./public/html/product.html", "utf8");
+	res.send(html);
+});
+ */
+ 
+app.get("/product.html", (req, res) => {
+	let id = req.query.id;
+	console.log(id);
+	
+	if (!id) {
+		res.send(errorFormat("please add id query."));
+	}
+	else {
+		//get product info
+		sqlQuery(`SELECT * FROM product WHERE id = ${id}`)
+		.then((result) => {
+			console.log(result);
+			let arrayAll = [];
+			
+			arrayAll.push(pathTransformNormal2(result[0].main_image_path));
+			arrayAll.push(result[0].title);
+			arrayAll.push(result[0]["product_id"]);
+			arrayAll.push(result[0].price);
+			
+			let colorOne = result[0].color_codes;
+			colorOne = colorOne.replace(/,/g, "'></div><div class='square ");
+			colorOne = "<div class='square " + colorOne + "'></div>";
+			arrayAll.push(colorOne);
+			
+			let sizeOne = result[0].sizes;
+			sizeOne = sizeOne.replace(/,/g, '</p></div><div class="circle"><p>');
+			sizeOne = '<div class="circle"><p>' + sizeOne + "</p></div>";
+			arrayAll.push(sizeOne);
+			arrayAll.push(result[0].note);
+			
+			let textureOne = result[0].texture;			
+			let descriptionOne = result[0].description;
+			descriptionOne = descriptionOne.replace(/ /g, '<br>');
+			descriptionOne = textureOne + "<br>" + descriptionOne;
+			arrayAll.push(descriptionOne);
+			
+			let placeOne = result[0].place;
+			placeOne = "素材產地/" + placeOne + "<br>" + "加工產地/" + placeOne;
+			arrayAll.push(placeOne);
+			arrayAll.push(result[0].story);
+			
+			let pathOtherImageOne = result[0].other_images_path.split(",");
+			for (let i=0; i<pathOtherImageOne.length; i++) {
+				arrayAll.push(pathTransformNormal2(pathOtherImageOne[i]));
+			}
+			
+			//create object to set variable in pug
+			objectFin = {};
+			for (let i=0; i<arrayAll.length; i++) {
+				objectFin[`arrayAll${i}`] = arrayAll[i];
+			}
+			
+			res.render("product-page", objectFin);
+		})
+		.catch((err) => {
+			res.send(errorFormat(err));
+		});
+	}	
+});
+
+
 
 app.get("/admin/product.html",(req, res) => {
 	res.render("product.pug");
 });
 
 app.get("/admin/campaign.html",(req, res) => {
-	res.render("campaign");
+	res.render("campaign.pug");
 });
 
 app.get("/admin/checkout.html", function(req, res, next) {
