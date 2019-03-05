@@ -70,9 +70,13 @@ ssh.on('ready', function() {
 /* ---------------Route--------------- */
 app.get("/", async (req, res) => {
 	//get product info
+	let startId = 47;
 	let result2 = await sqlQuery(`SELECT * FROM product WHERE id IN (47,48,49,50,51,52)`);
 	let arrayAll = [];
 	for (let i=0; i<6; i++) {
+		arrayAll.push(`product.html?id=${startId+i}`);
+		// /product.html?id=47
+		
 		arrayAll.push(pathTransformNormal2(result2[i].main_image_path));
 		let colorOne = result2[i].color_codes;
 		colorOne = colorOne.replace(/,/g, "'></div><div class='square ");
@@ -84,7 +88,7 @@ app.get("/", async (req, res) => {
 
 	//create object to set variable in pug
 	objectFin = {};
-	for (let i=0; i<24; i++) {
+	for (let i=0; i<arrayAll.length; i++) {
 		objectFin[`arrayAll${i}`] = arrayAll[i];
 	}
 
