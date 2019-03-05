@@ -67,6 +67,8 @@ ssh.on('ready', function() {
 	privateKey: require('fs').readFileSync(".ssh/2019-2-14-keyPair.pem")
 }); 
 
+
+
 /* ---------------Route--------------- */
 app.get("/", async (req, res) => {
 	//get product info
@@ -104,12 +106,6 @@ app.get("/", async (req, res) => {
 	res.render("index.pug", objectFin);
 });
 
-/* app.get("/testindex",(req, res) => {
-	let html = fs.readFileSync("./public/html/index.html", "utf8");
-	res.send(html);
-}); */
-
-
 /* app.get("/product.html",(req, res) => {
 	let id = req.query.id;
 	console.log(id);
@@ -118,13 +114,9 @@ app.get("/", async (req, res) => {
 	res.send(html);
 }); */
 
-app.get("/product.html", (req, res) => {
-	
-	let html = fs.readFileSync("./public/html/product-checkout.html", "utf8");
-	res.send(html);
-	
+app.get("/thankyou", (req, res) => {
+	res.render("thankyou");
 });
-
 
 app.get("/product.html", (req, res) => {
 	let id = req.query.id;
@@ -186,6 +178,104 @@ app.get("/product.html", (req, res) => {
 	}	
 });
 
+app.get("/user-login", (req, res) => {
+	res.render("sign-up-in");
+});
+
+//Used by login form to send POST request
+app.post("/user-login-send-request-signup", (req, res) => {
+	console.log(req.body);
+	// Set the headers
+	let headers = {
+		'User-Agent':       'Super Agent/0.0.1',
+		'content-type':     'application/json'
+	}
+	let data = {
+		"name":`${req.body.name}`,
+		"email":`${req.body.email}`,
+		"password":`${req.body.password}`
+	};
+	
+	// Configure the request
+	let options = {
+		url: 'http://52.15.89.192/api/1.0/user/signup',
+		method: 'POST',
+		headers: headers,
+		json:data
+	}
+
+	// Start the request
+	request(options, (error, response, body) => {
+		if (!error && response.statusCode == 200) {
+			// Print out the response body
+			console.log(body);
+			if (body.data != undefined) {
+				res.cookie("access_token", body.data.access_token, {expires:  new Date(body.data.access_expired)});
+				res.cookie("access_expired", body.data.access_expired, {expires:  new Date(body.data.access_expired)});
+				res.redirect("/user/profile");
+			}else {
+				res.send(body);
+			}
+		}
+	})
+});
+
+//Used by login form to send POST request
+app.post("/user-login-send-request-signin", (req, res) => {
+	// Set the headers
+	let headers = {
+		'User-Agent':       'Super Agent/0.0.1',
+		'content-type':     'application/json'
+	}
+	let data = {
+		"provider":"native",
+		"email":`${req.body.email}`,
+		"password":`${req.body.password}`
+	};
+	
+	// Configure the request
+	let options = {
+		url: 'http://52.15.89.192/api/1.0/user/signin',
+		method: 'POST',
+		headers: headers,
+		json:data
+	}
+
+	// Start the request
+	request(options, (error, response, body) => {
+		if (!error && response.statusCode == 200) {
+			// Print out the response body
+			console.log(body);
+			if (body.data != undefined) {
+				res.cookie("access_token", body.data.access_token, {expires:  new Date(body.data.access_expired)});
+				res.cookie("access_expired", body.data.access_expired, {expires:  new Date(body.data.access_expired)});
+				res.redirect("/user/profile");
+			}
+			else {
+				res.send(body);
+			}
+		}
+	})
+});
+
+app.get("/user/profile", (req, res) => {
+	let accessToken = req.cookies.access_token;
+	console.log(req.cookies.access_token);
+	if (accessToken != undefined) {
+		sqlQuery(`SELECT * FROM user WHERE access_token = "${accessToken}"`)
+		.then((result) => {
+			console.log(result);
+			res.render("user-profile", result[0]);
+		})
+		.catch ((err) => {
+			res.send(err);
+		});
+	}
+	else{
+		res.redirect("/user-login");
+	}
+});
+
 
 
 app.get("/admin/product.html",(req, res) => {
@@ -245,9 +335,6 @@ app.get("/admin/checkout.html", (req, res, next) => {
 	
 	res.send("post OK.");
 }); */
-
-
-
 
 app.get("/test-post", (req, res) => {
 	// Set the headers

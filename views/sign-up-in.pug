@@ -2,34 +2,62 @@ extends layout.pug
 
 block content
     section#content
-    h2 不使用
+    h2 使用者登入
     
     h3 Sign Up
-    form(action="/api/1.0/user/signup", method="post")
+    form(action="/user-login-send-request-signup", method="post")
         div
             label name*:
-                input(type="text", name="name")
+                input(type="text", name="name", id="name-sign-up", oninput="checkValue()")
         div
             label email*:
             div
-                input(type="text", name="email")
+                input(type="text", name="email", id="email-sign-up", oninput="checkValue()")
         div
             label password*:
             div
-                input(type="text", name="password")
-        button(type="submit") Sign Up
+                input(type="text", name="password", id="password-sign-up", oninput="checkValue()")
+        button(type="submit",id="button-sign-up") Sign Up
         
     h3 Sign In
-    form(action="/api/1.0/user/signin", method="post")
+    form(action="/user-login-send-request-signin", method="post")
         div
             label name*:
-                input(type="text", name="name")
+                input(type="text", name="name", id="name-sign-in", oninput="checkValue()")
         div
             label email*:
             div
-                input(type="text", name="email")
+                input(type="text", name="email", id="email-sign-in", oninput="checkValue()")
         div
             label password*:
             div
-                input(type="text", name="password")
-        button(type="submit") Sign In
+                input(type="text", name="password", id="password-sign-in", oninput="checkValue()")
+        button(type="submit",id="button-sign-in") Sign In
+    script.
+        disableBtn("button-sign-up");
+        disableBtn("button-sign-in");
+        
+
+        function checkValue() {
+            if (document.getElementById("name-sign-up").value != "" && document.getElementById("email-sign-up").value && document.getElementById("password-sign-up").value) {
+                enableBtn("button-sign-up");
+            }
+            else if (document.getElementById("name-sign-in").value != "" && document.getElementById("email-sign-in").value && document.getElementById("password-sign-in").value) {
+                enableBtn("button-sign-in");
+            }else{
+            }
+        }
+        
+        
+        function disableBtn(id) {
+            document.getElementById(id).disabled = true;
+            document.getElementById(id).style.opacity = "0.5";
+        }
+
+        function enableBtn(id) {
+            document.getElementById(id).disabled = false;
+            document.getElementById(id).style.opacity = "1";
+        }
+    
+    
+    

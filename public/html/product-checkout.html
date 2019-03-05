@@ -6,11 +6,12 @@
 		<title>STYLiSH</title>
 		<link href='https://fonts.googleapis.com/css?family=Varela+Round' rel='stylesheet' type='text/css'>
 		<link rel="stylesheet" href="static/css/normalize.css">
+		<!-- Bootstrap -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 		<link rel="stylesheet" href="static/css/style.css">
 		<link rel="stylesheet" href="static/css/style-product.css">
 		<link rel="stylesheet" href="static/css/product-checkout.css">
-		<!-- Bootstrap -->
-		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
 		<script>
 			function add() {
 				let num = document.getElementById("productNum");
@@ -135,28 +136,28 @@
 				<div>
 					<h2>Order</h2>
 					<label>shipping:</label>
-					<input type="text", id="shipping9"><br>
+					<input type="text" id="shipping9">
 					<label>payment:</label>
-					<input type="text", id="payment9"><br>
+					<input type="text" id="payment9">
 					<label>subtotal:</label>
-					<input type="text", id="subtotal9"><br>
+					<input type="text" id="subtotal9">
 					<label>freight:</label>
-					<input type="text", id="freight9"><br>
+					<input type="text" id="freight9">
 					<label>total:</label>
-					<input type="text", id="total9"><br>
+					<input type="text" id="total9">
 				</div>
 				<div>
 					<h2>recipient</h2>
 					<label>name:</label>
-					<input type="text", id="name9"><br>
+					<input type="text" id="name9">
 					<label>phone:</label>
-					<input type="text", id="phone9"><br>
+					<input type="text" id="phone9">
 					<label>email:</label>
-					<input type="text", id="email9"><br>
+					<input type="text" id="email9">
 					<label>address:</label>
-					<input type="text", id="address9"><br>
+					<input type="text" id="address9">
 					<label>time:</label>
-					<input type="text", id="time9"><br>
+					<input type="text" id="time9">
 				</div>
 			</div>
 			<div class="container">
@@ -352,17 +353,17 @@
 							order: order
 						};
 						
-						<!-- fetch ("http://localhost:3000/api/1.0/order/checkout", {headers: {'Content-Type': 'application/json'},method: "post", body:JSON.stringify(reqBody)}) -->
-						<!-- .then( (res) => { -->
-							<!-- if (!res.ok) throw new Error(res.statusText);		//check status -->
-							<!-- return res.text(); -->
-						<!-- }) -->
-						<!-- .then( (res) => { -->
-							<!-- console.log(res); -->
-						<!-- }) -->
-						<!-- .catch( (err) => { -->
-							<!-- console.log(err); -->
-						<!-- }); -->
+						fetch ("http://localhost:3000/api/1.0/order/checkout", {headers: {'Content-Type': 'application/json'},method: "post", body:JSON.stringify(reqBody)})
+						.then( (res) => {
+							if (!res.ok) throw new Error(res.statusText);		//check status
+							return res.text();
+						})
+						.then( (res) => {
+							console.log(res);
+						})
+						.catch( (err) => {
+							console.log(err);
+						});
 					})
 				})
 				
