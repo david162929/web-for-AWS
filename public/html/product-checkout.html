@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>STYLiSH</title>
+		<link href='https://fonts.googleapis.com/css?family=Varela+Round' rel='stylesheet' type='text/css'>
+		<link rel="stylesheet" href="static/css/normalize.css">
+		<link rel="stylesheet" href="static/css/style.css">
+		<link rel="stylesheet" href="static/css/style-product.css">
+		<link rel="stylesheet" href="static/css/product-checkout.css">
+		<!-- Bootstrap -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+		<script>
+			function add() {
+				let num = document.getElementById("productNum");
+				num = parseInt(num.value);
+				if (isNaN(num)) {
+					num = 1;
+				}
+				num += 1;
+				document.getElementById("productNum").value = num;
+				
+			}
+			
+			function remove() {
+				let num = document.getElementById("productNum");
+				num = parseInt(num.value);
+				if (isNaN(num)) {
+					num = 1;
+				}
+				if (num > 1) {
+					num += -1;
+				}
+				document.getElementById("productNum").value = num;
+				
+			}
+		</script>
+		
+	</head>
+	<body>
+		<header class="nav clearfix">
+			<h1 class="website-title"><a href="#">STYLiSH</a></h1>
+			<img class="logo" src="static/images/logo.png" alt="logo">
+			<nav>
+				<ul class="nav-category">
+					<li><a class="category" href="#">女裝</a></li>
+					<li><a class="category" href="#">男裝</a></li>
+					<li><a href="#">配件</a></li>
+				</ul>
+				<ul class="nav-icon">
+					<li>
+						<a href="#"><img class="member-icon" src="static/images/member.png" alt="member-icon"></a>
+					</li>
+					<li><a href="#"><img class="cart-icon" src="static/images/cart.png" alt="cart-icon"></a></li>
+					<li>
+						<div class="nav-search">
+							<input class="search-input" type="text">
+							<a href="#"><img class="search-icon" src="static/images/search.png" alt="search-icon"></a>			
+						</div>
+					</li>
+				</ul>
+			</nav>
+			
+		</header><!--/.nav--> 
+
+		<div class="all-layout">
+			<section id="product-content">
+				<div class="content-left">
+					<img class="product-main-image" src="static/images/201807201824/main.jpg" alt="product-main-image">
+				</div>
+				<div class="content-right">
+					<h2>前開衩扭結洋裝</h2>
+					<p>1</p>
+					<h3>TWD.590</h3>
+					<ul>
+						<li>
+							<p class="product-property">顏色</p>
+							<div class="colors-list">
+								<div class="square colorB"></div>
+								<div class="square colorC"></div>
+							</div>
+						</li>
+						
+						<li>
+							<p class="product-property">尺寸</p>
+							<div class="size-list">
+								<div class="circle"><p>S</p></div>
+								<div class="circle"><p>M</p></div>
+								<div class="circle"><p>L</p></div>
+								<div class="circle"><p>XL</p></div>
+							</div>
+							
+						</li>
+						<li>
+							<p class="product-property">數量</p>
+							<div class="product-num-input">
+								<button class="button-remove" type="button" onclick="remove()">-</button>
+								<input type="text" id="productNum" name="num" value="1">
+								<button class="button-add" type="button" onclick="add()">+</button>
+							</div>
+						</li>
+					</ul>
+					<button class="add-cart-button" type="submit">加入購物車</button>
+					<div class="product-info">
+						<p>*實品顏色依單品照為主</p>
+						<p>棉 100%<br>厚薄：薄<br>彈性：無</p>
+						<p>素材產地/中國<br>加工產地/中國</p>
+					</div>
+				</div>	
+			</section>
+			<section id="product-detail">
+				<div>
+					<h3>細部說明</h3>
+					<div class="product-detail-line"></div>
+				</div>
+				<div>
+					<p>O.N.S is all about options, which is why we took our staple polo shirt and upgraded it with slubby linen jersey, making it even lighter for those who prefer their summer style extra-breezy.</p>
+					<img class="product-image-1" src="static/images/201807201824/0.jpg" alt="product-image-1">
+				
+				</div>
+				<div>
+					
+					<img class="product-image-2" src="static/images/201807201824/1.jpg" alt="product-image-2">
+				
+				</div>
+			</section>
+		</div>
+		
+		
+		
+		
+		<section>
+			<div class="Order-input">
+				<div>
+					<h2>Order</h2>
+					<label>shipping:</label>
+					<input type="text", id="shipping9"><br>
+					<label>payment:</label>
+					<input type="text", id="payment9"><br>
+					<label>subtotal:</label>
+					<input type="text", id="subtotal9"><br>
+					<label>freight:</label>
+					<input type="text", id="freight9"><br>
+					<label>total:</label>
+					<input type="text", id="total9"><br>
+				</div>
+				<div>
+					<h2>recipient</h2>
+					<label>name:</label>
+					<input type="text", id="name9"><br>
+					<label>phone:</label>
+					<input type="text", id="phone9"><br>
+					<label>email:</label>
+					<input type="text", id="email9"><br>
+					<label>address:</label>
+					<input type="text", id="address9"><br>
+					<label>time:</label>
+					<input type="text", id="time9"><br>
+				</div>
+			</div>
+			<div class="container">
+				<form>
+					<div class="form-group card-number-group">
+						<label for="card-number" class="control-label"><span id="cardtype"></span>卡號</label>
+						<div class="form-control card-number"></div>
+					</div>
+					<div class="form-group expiration-date-group">
+						<label for="expiration-date" class="control-label">卡片到期日</label>
+						<div class="form-control expiration-date" id="tappay-expiration-date"></div>
+					</div>
+					<div class="form-group cvc-group">
+						<label for="cvc" class="control-label">卡片後三碼</label>
+						<div class="form-control cvc"></div>
+					</div>
+
+					<button type="submit" class="btn btn-default">Pay</button>
+				</form>
+				<br>
+				<pre class="jumbotron text-left" id="curl">
+				</pre>
+		
+			</div>
+
+			<script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+			<script src="https://js.tappaysdk.com/tpdirect/v4"></script>
+			<script>
+				TPDirect.setupSDK(12348, 'app_pa1pQcKoY22IlnSXq5m5WP5jFKzoRG58VEXpT7wU62ud7mMbDOGzCYIlzzLF', 'sandbox')
+				TPDirect.card.setup({
+					fields: {
+						number: {
+							element: '.form-control.card-number',
+							placeholder: '**** **** **** ****'
+						},
+						expirationDate: {
+							element: document.getElementById('tappay-expiration-date'),
+							placeholder: 'MM / YY'
+						},
+						ccv: {
+							element: $('.form-control.cvc')[0],
+							placeholder: '後三碼'
+						}
+					},
+					styles: {
+						'input': {
+							'color': 'gray'
+						},
+						'input.ccv': {
+							// 'font-size': '16px'
+						},
+						':focus': {
+							'color': 'black'
+						},
+						'.valid': {
+							'color': 'green'
+						},
+						'.invalid': {
+							'color': 'red'
+						},
+						'@media screen and (max-width: 400px)': {
+							'input': {
+								'color': 'orange'
+							}
+						}
+					}
+				})
+				// listen for TapPay Field
+				TPDirect.card.onUpdate(function (update) {
+					/* Disable / enable submit button depend on update.canGetPrime  */
+					/* ============================================================ */
+
+					// update.canGetPrime === true
+					//     --> you can call TPDirect.card.getPrime()
+					// const submitButton = document.querySelector('button[type="submit"]')
+					if (update.canGetPrime) {
+						// submitButton.removeAttribute('disabled')
+						$('button[type="submit"]').removeAttr('disabled')
+					} else {
+						// submitButton.setAttribute('disabled', true)
+						$('button[type="submit"]').attr('disabled', true)
+					}
+
+
+					/* Change card type display when card type change */
+					/* ============================================== */
+
+					// cardTypes = ['visa', 'mastercard', ...]
+					var newType = update.cardType === 'unknown' ? '' : update.cardType
+					$('#cardtype').text(newType)
+
+
+
+					/* Change form-group style when tappay field status change */
+					/* ======================================================= */
+
+					// number 欄位是錯誤的
+					if (update.status.number === 2) {
+						setNumberFormGroupToError('.card-number-group')
+					} else if (update.status.number === 0) {
+						setNumberFormGroupToSuccess('.card-number-group')
+					} else {
+						setNumberFormGroupToNormal('.card-number-group')
+					}
+
+					if (update.status.expiry === 2) {
+						setNumberFormGroupToError('.expiration-date-group')
+					} else if (update.status.expiry === 0) {
+						setNumberFormGroupToSuccess('.expiration-date-group')
+					} else {
+						setNumberFormGroupToNormal('.expiration-date-group')
+					}
+
+					if (update.status.cvc === 2) {
+						setNumberFormGroupToError('.cvc-group')
+					} else if (update.status.cvc === 0) {
+						setNumberFormGroupToSuccess('.cvc-group')
+					} else {
+						setNumberFormGroupToNormal('.cvc-group')
+					}
+				})
+
+				$('form').on('submit', function (event) {
+					event.preventDefault()
+					
+					// fix keyboard issue in iOS device
+					forceBlurIos()
+					
+					const tappayStatus = TPDirect.card.getTappayFieldsStatus()
+					console.log(tappayStatus)
+
+					// Check TPDirect.card.getTappayFieldsStatus().canGetPrime before TPDirect.card.getPrime
+					if (tappayStatus.canGetPrime === false) {
+						alert('can not get prime')
+						return
+					}
+
+					// Get prime
+					TPDirect.card.getPrime(function (result) {
+						if (result.status !== 0) {
+							alert('get prime error ' + result.msg)
+							return
+						}
+						alert('get prime 成功，prime: ' + result.card.prime)
+						
+						//POST to server Prime
+						console.log(result.card.prime);
+						const shipping9 = document.getElementById("shipping9").value;
+						const payment9 = document.getElementById("payment9").value;
+						const subtotal9 = parseInt(document.getElementById("subtotal9").value);
+						const freight9 = parseInt(document.getElementById("freight9").value);
+						const total9 = parseInt(document.getElementById("total9").value);
+						
+						const name9 = document.getElementById("name9").value;
+						const phone9 = document.getElementById("phone9").value;
+						const email9 = document.getElementById("email9").value;
+						const address9 = document.getElementById("address9").value;
+						const time9 = document.getElementById("time9").value;				
+						
+						const list = [
+							{
+								id: "123",
+								name: "gjlddhld",
+								price: 123,
+								color: {
+								  name: "fwqfdf",
+								  code: "ffdasf"
+								},
+								size: "S",
+								qty: 1
+							}
+						
+						];
+						
+						const order = {
+							shipping: shipping9,
+							payment: payment9,
+							subtotal: subtotal9,
+							freight: freight9,
+							total: total9,
+							recipient: {
+							  name: name9,
+							  phone: phone9,
+							  email: email9,
+							  address: address9,
+							  time: time9
+							},
+							list: list
+						};
+						
+						const reqBody = {
+							prime: result.card.prime,
+							order: order
+						};
+						
+						<!-- fetch ("http://localhost:3000/api/1.0/order/checkout", {headers: {'Content-Type': 'application/json'},method: "post", body:JSON.stringify(reqBody)}) -->
+						<!-- .then( (res) => { -->
+							<!-- if (!res.ok) throw new Error(res.statusText);		//check status -->
+							<!-- return res.text(); -->
+						<!-- }) -->
+						<!-- .then( (res) => { -->
+							<!-- console.log(res); -->
+						<!-- }) -->
+						<!-- .catch( (err) => { -->
+							<!-- console.log(err); -->
+						<!-- }); -->
+					})
+				})
+				
+				
+				
+				
+				
+				
+
+				function setNumberFormGroupToError(selector) {
+					$(selector).addClass('has-error')
+					$(selector).removeClass('has-success')
+				}
+
+				function setNumberFormGroupToSuccess(selector) {
+					$(selector).removeClass('has-error')
+					$(selector).addClass('has-success')
+				}
+
+				function setNumberFormGroupToNormal(selector) {
+					$(selector).removeClass('has-error')
+					$(selector).removeClass('has-success')
+				}
+				
+				function forceBlurIos() {
+					if (!isIos()) {
+						return
+					}
+					var input = document.createElement('input')
+					input.setAttribute('type', 'text')
+					// Insert to active element to ensure scroll lands somewhere relevant
+					document.activeElement.prepend(input)
+					input.focus()
+					input.parentNode.removeChild(input)
+				}
+				
+				function isIos() {
+					return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+				}
+			</script>
+		
+		</section>
+		
+		
+		
+		<footer class="footer clearfix">
+			<nav>
+				<ul class="nav-footer-item">
+					<li><a class="category-footer" href="#">關於Stylish</a></li>
+					<li><a class="category-footer" href="#">服務條款</a></li>
+					<li><a class="category-footer" href="#">隱私政策</a></li>
+					<li><a class="category-footer" href="#">聯絡我們</a></li>
+					<li><a class="category-footer" href="#">FAQ</a></li>
+				</ul>
+				<ul class="nav-footer-icon">
+					<li>
+						<div><span>&copy;2019. All rights reserved.</span></div>
+					</li>
+					<li>
+						<a href="#"><img class="facebook-icon" src="static/images/facebook.png" alt="facebook-icon"></a>
+					</li>
+					<li>
+						<a href="#"><img class="twitter-icon" src="static/images/twitter.png" alt="twitter-icon"></a>
+					</li>
+					<li>
+						<a href="#"><img class="line-icon" src="static/images/line.png" alt="line-icon"></a>			
+					</li>
+
+				</ul>
+			</nav>
+		</footer>
+	</body>
+</html>

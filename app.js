@@ -105,16 +105,23 @@ app.get("/", async (req, res) => {
 	res.send(html);
 }); */
 
-/* 
-app.get("/product.html",(req, res) => {
+
+/* app.get("/product.html",(req, res) => {
 	let id = req.query.id;
 	console.log(id);
 	
 	let html = fs.readFileSync("./public/html/product.html", "utf8");
 	res.send(html);
+}); */
+
+app.get("/product.html", (req, res) => {
+	
+	let html = fs.readFileSync("./public/html/product-checkout.html", "utf8");
+	res.send(html);
+	
 });
- */
- 
+
+
 app.get("/product.html", (req, res) => {
 	let id = req.query.id;
 	console.log(id);
@@ -185,11 +192,12 @@ app.get("/admin/campaign.html",(req, res) => {
 	res.render("campaign.pug");
 });
 
-app.get("/admin/checkout.html", function(req, res, next) {
+app.get("/admin/checkout.html", (req, res, next) => {
     let html = fs.readFileSync('./public/html/checkout.html', 'utf8')
     res.send(html);
 })
-app.get("/test",(req, res) => {
+
+/* app.get("/test",(req, res) => {
 	// Set the headers
 	let headers = {
 		'content-type':     'application/json',
@@ -227,13 +235,12 @@ app.get("/test",(req, res) => {
 			res.send(body);
 		}
 	})
-});
-
-app.post("/test",(req, res) => {
+}); */
+/* app.post("/test",(req, res) => {
 	console.log(req.body);
 	
 	res.send("post OK.");
-});
+}); */
 
 
 
