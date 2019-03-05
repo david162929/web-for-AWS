@@ -8,8 +8,12 @@ const Client = require('ssh2').Client;
 const request = require("request");
 const crypto = require('crypto');
 const fs = require('fs');
+const NodeCache = require( "node-cache" );
 
 const app = express();
+
+//Initialize node-cache
+const myCache = new NodeCache();
 
 //use bodyParser and cookieParser
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -483,10 +487,45 @@ app.get("/test-get-fb", (req, res) => {
 	})
 });
 
+app.get("/testcache", (req, res) => {
+	obj = { my: "Special", variable: 42 };
+	myCache.set( "myKey", obj, function( err, success ){
+		if( !err && success ){
+			console.log( success );
+			// true
+			// ... do something ...
+		}
+	});
+	
+	value1 = myCache.get( "myKey" );
+	if ( value1 == undefined ){
+		// handle miss!
+	}
+	console.log(value1);
+	
+	value2 = myCache.del( "myKey" );
+	console.log(value2);
+	
+	value1 = myCache.get( "myKey" );
+	if ( value1 == undefined ){
+		// handle miss!
+		console.log("x");
+	}
+	console.log(value1);
+	
+	let mykeys = myCache.keys();
+	console.log( mykeys );
+	
+	myCache.getStats();
+	
+	
+	res.send("done.");
+});
+
 
 /* ---------------API 1.0--------------- */
 /* ---------------Product input form--------------- */
-app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 1}, {name: "images", maxCount: 50}]), (req, res) => {
+app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 1}, {name: "images", maxCount: 50}]),  async (req, res) => {
 	const productId = req.body.productId;
 	const title = req.body.title;
 	const category = req.body.category;
@@ -503,9 +542,7 @@ app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 
 	const mainImagePath = pathTransform(req.files["mainImage"][0].path);
 	const imagesCount = req.files["images"].length;
 	const imagesPath = [];
-	
-	
-	
+		
 	//combine images path
 	for (let i=0; i < imagesCount ; i++){
 		imagesPath.push(pathTransform(req.files["images"][i].path));
@@ -516,12 +553,9 @@ app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 
 	
 	
 	//Insert product table
-	sql.query(`INSERT INTO product (product_id, title, category, description, price, texture, wash, place, note, story, color_codes, color_names, sizes, main_image_path, other_images_path) VALUES ('${productId}', '${title}', '${category}', "${description}", "${price}", "${texture}", "${wash}", "${place}", "${note}", "${story}", "${colorCodes}", "${colorNames}", "${sizes}", "${mainImagePath}", "${imagesPath}")`, function (err, result) {
-		if (err) throw err;
-		console.log("1 record inserted(table product), ID: " + result.insertId);
-	});
-	
-	
+	let result1 = await sqlQuery(`INSERT INTO product (product_id, title, category, description, price, texture, wash, place, note, story, color_codes, color_names, sizes, main_image_path, other_images_path) VALUES ('${productId}', '${title}', '${category}', "${description}", "${price}", "${texture}", "${wash}", "${place}", "${note}", "${story}", "${colorCodes}", "${colorNames}", "${sizes}", "${mainImagePath}", "${imagesPath}")`);
+	console.log("1 record inserted(table product), ID: " + result1.insertId);
+		
 	//Insert variants table
 	let productType = 1;
 
@@ -533,6 +567,7 @@ app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 
 
 	if (arrayOfColorCodes.length != arrayOfColorNames.length){
 		console.log("color_codes != color_names.");
+		res.send("color_codes != color_names.");
 	}
 	else {
 		let arrayTemp = [];
@@ -543,18 +578,24 @@ app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 
 				arrayOfVariants.push(arrayTemp);
 				
 				productType += 1;
-			}
-		
+			}		
 		};
 		console.log(arrayOfVariants);
 		sql.query(`INSERT INTO variants (product_id, product_type, color_code, color_name, size, variant_price, stock) VALUES ?`, [arrayOfVariants], function (err, result) {
 			if (err) throw err;
 			console.log("Number of records inserted(table variants) :" + result.affectedRows);
+			
+			//clear cache
+			let value1 = myCache.del("productDetail${id}");
+			if (value1 === 1) {
+				console.log("clear cache succeed.");
+			}
+			
+			res.redirect("/admin/product.html");
 		});
 	}
-		
-	//console.log(req.body);
-	res.redirect("/admin/product.html");
+	
+
 	
 });
 
@@ -566,13 +607,20 @@ app.post("/api/1.0/admin/campaigns", upload.single("picture"), (req, res) =>{
 	console.log(productId, "\n", picture, "\n", story);
 	
 	//Insert campaigns table
-	sql.query(`INSERT INTO campaigns (product_id, picture_path, story) VALUES ('${productId}', '${picture}', '${story}')`, function (err, result) {
-		if (err) throw err;
+	sqlQuery(`INSERT INTO campaigns (product_id, picture_path, story) VALUES ('${productId}', '${picture}', '${story}')`)
+	.then((result) => {
 		console.log("1 record inserted(table campaigns), ID: " + result.insertId);
+		//clear cache
+		let value1 = myCache.del("campaignsAll");
+		if (value1 === 1) {
+			console.log("clear cache succeed.");
+		}
+		
+		res.redirect("/admin/campaign.html");
+	})
+	.catch((err) => {
+		res.send(err);
 	});
-	
-	res.redirect("/admin/campaign.html");
-	
 });
 
 /* ---------------Product Search API--------------- */
@@ -670,48 +718,72 @@ app.get("/api/1.0/products/details", async (req, res) => {
 	let id = req.query.id;
 	console.log(id);
 	
-	try{
-		//check id exist or not
-		let num = await sqlQuery(`SELECT COUNT(*) FROM product WHERE product_id = "${id}"`);
-		num = num[0]["COUNT(*)"];
-		console.log(num);
-		
-		if (num != 0) {
-			//make colors array
-			arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product WHERE product_id = "${id}"`);
-			arrayColors = transformToArrayColors(arrayColors);
+	//get cache
+	let value1 = myCache.get(`productDetail${id}`);
+	
+	//check cache
+	if ( value1 == undefined ){
+		//if not, find data from database
+		try{
+			//check id exist or not
+			let num = await sqlQuery(`SELECT COUNT(*) FROM product WHERE product_id = "${id}"`);
+			num = num[0]["COUNT(*)"];
+			console.log(num);
 			
-			//make variants array
-			arrayVariants = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id = "${id}" ORDER BY variant_id DESC`);
-			arrayVariants = transformToArrayVariants(arrayVariants);
-			
-			//make final array
-			arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product WHERE product_id = "${id}"`);
-			arrayAll = arrayAll.map((obj, index, array1) => {
-				obj.sizes = obj.sizes.split(",");						//change sizes string to array
-				obj.main_image = pathTransformNormal(obj.main_image);
-				obj.images = obj.images.split(",");						//change images string to array
-				obj.images = obj.images.map((item, index2, array2) => {
-					return pathTransformNormal(item);
+			if (num != 0) {
+				//make colors array
+				arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product WHERE product_id = "${id}"`);
+				arrayColors = transformToArrayColors(arrayColors);
+				
+				//make variants array
+				arrayVariants = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id = "${id}" ORDER BY variant_id DESC`);
+				arrayVariants = transformToArrayVariants(arrayVariants);
+				
+				//make final array
+				arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product WHERE product_id = "${id}"`);
+				arrayAll = arrayAll.map((obj, index, array1) => {
+					obj.sizes = obj.sizes.split(",");						//change sizes string to array
+					obj.main_image = pathTransformNormal(obj.main_image);
+					obj.images = obj.images.split(",");						//change images string to array
+					obj.images = obj.images.map((item, index2, array2) => {
+						return pathTransformNormal(item);
+					});
+					obj.colors = arrayColors[index].colors;
+					obj.variants = arrayVariants[index];
+					return obj;
 				});
-				obj.colors = arrayColors[index].colors;
-				obj.variants = arrayVariants[index];
-				return obj;
-			});
-			objectFin = {data: arrayAll[0]};
-			//console.log(arrayAll);
-			console.log(JSON.stringify(objectFin,null,4));
-			
-			res.send(JSON.stringify(objectFin,null,4));
+				objectFin = {data: arrayAll[0]};
+				//console.log(arrayAll);
+				console.log(JSON.stringify(objectFin,null,4));
+				
+				
+				//save in cache
+				let success = myCache.set(`productDetail${id}`, objectFin);
+				if(success){
+					console.log("cache succeed.");
+				}
+				else {
+					console.log("cache failed.");
+				}
+				
+				res.send(JSON.stringify(objectFin,null,4));
+			}
+			else {
+				console.log("Product id does not exist.");
+				res.send("Product id does not exist.");
+			}
 		}
-		else {
-			console.log("Product id does not exist.");
-			res.send("Product id does not exist.");
-		}	
+		catch (e) {
+			res.status(500).send(e);
+		}
 	}
-	catch (e) {
-		res.status(500).send(e);
+	else {
+		//if yes, send cache
+		console.log("cache sended.");
+		res.send(value1);
 	}
+	
+
 });
 
 /* ---------------Product List API--------------- */
@@ -862,21 +934,41 @@ app.get("/api/1.0/products/:category", async (req, res) => {			//this route must
 
 /* ---------------Marketing Campaigns API--------------- */
 app.get("/api/1.0/marketing/campaigns", async (req, res) => {
-	let arrayCampaigns;
-	let objectFin;
+	//get cache
+	let value1 = myCache.get("campaignsAll");
+	
+	//check cache
+	if ( value1 == undefined ){
+		//if not, find data from database
+		let arrayCampaigns;
+		let objectFin;
+		//make campaigns array
+		arrayCampaigns = await sqlQuery(`SELECT campaigns_id, product_id, picture_path AS picture, story FROM campaigns`);
 		
-	//make campaigns array
-	arrayCampaigns = await sqlQuery(`SELECT campaigns_id, product_id, picture_path AS picture, story FROM campaigns`);
-	
-	//transform correct format
-	arrayCampaigns = arrayCampaigns.map((obj, index, array1) => {
-		obj.picture = pathTransformNormal2(obj.picture)
-		return obj;
-	});
-	
-	objectFin = {data:arrayCampaigns};
-	res.send(objectFin);
-	
+		//transform correct format
+		arrayCampaigns = arrayCampaigns.map((obj, index, array1) => {
+			obj.picture = pathTransformNormal2(obj.picture)
+			return obj;
+		});
+		
+		objectFin = {data:arrayCampaigns};
+		
+		//save in cache
+		let success = myCache.set("campaignsAll", objectFin);
+		if(success){
+			console.log("cache succeed.");
+		}
+		else {
+			console.log("cache failed.");
+		}
+		
+		res.send(objectFin);
+	}
+	else {
+		//if yes, send cache
+		console.log("cache sended.");
+		res.send(value1);
+	}	
 });
 
 /* ---------------User Sign Up API--------------- */
