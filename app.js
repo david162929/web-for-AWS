@@ -276,8 +276,6 @@ app.get("/user/profile", (req, res) => {
 	}
 });
 
-
-
 app.get("/admin/product.html",(req, res) => {
 	res.render("product.pug");
 });
