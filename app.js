@@ -170,7 +170,7 @@ app.get("/product.html", (req, res) => {
 				objectFin[`arrayAll${i}`] = arrayAll[i];
 			}
 			
-			res.render("product-page", objectFin);
+			res.render("product-checkout", objectFin);
 		})
 		.catch((err) => {
 			res.send(errorFormat(err));
