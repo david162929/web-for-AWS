@@ -9,6 +9,8 @@ const request = require("request");
 const crypto = require('crypto');
 const fs = require('fs');
 const NodeCache = require( "node-cache" );
+const AWS = require('aws-sdk');
+const uuid = require('uuid');
 
 const app = express();
 
@@ -26,8 +28,8 @@ app.set("view engine", "pug");
 //static files
 app.use("/static", express.static("public"));
 
-//multer set storing files
-var storage = multer.diskStorage({
+/* //multer set storing files
+const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, './public/uploads')
   },
@@ -35,7 +37,14 @@ var storage = multer.diskStorage({
     cb(null, Date.now() + "-" + file.originalname)
   }
 });
+const upload = multer({ storage: storage }); */
+
+//multer set storing files in memory
+const storage = multer.memoryStorage() // memoryStorage() is not a function
 var upload = multer({ storage: storage });
+
+
+
 
 
 //create TCP connection to MySQL over SSH by using mysql2 and ssh2 module
@@ -83,7 +92,7 @@ app.get("/", async (req, res) => {
 		arrayAll.push(`product.html?id=${startId+i}`);
 		// /product.html?id=47
 		
-		arrayAll.push(pathTransformNormal2(result2[i].main_image_path));
+		arrayAll.push(result2[i].main_image_path);
 		let colorOne = result2[i].color_codes;
 		colorOne = colorOne.replace(/,/g, "'></div><div class='square ");
 		colorOne = "<div class='square " + colorOne + "'></div>";
@@ -109,14 +118,15 @@ app.get("/", async (req, res) => {
 		
 	res.render("index.pug", objectFin);
 });
-
-/* app.get("/product.html",(req, res) => {
+/* 
+app.get("/testproduct.html",(req, res) => {
 	let id = req.query.id;
 	console.log(id);
 	
 	let html = fs.readFileSync("./public/html/product.html", "utf8");
 	res.send(html);
-}); */
+});
+ */
 
 app.get("/thankyou", (req, res) => {
 	res.render("thankyou");
@@ -136,7 +146,7 @@ app.get("/product.html", (req, res) => {
 			console.log(result);
 			let arrayAll = [];
 			
-			arrayAll.push(pathTransformNormal2(result[0].main_image_path));
+			arrayAll.push(result[0].main_image_path);
 			arrayAll.push(result[0].title);
 			arrayAll.push(result[0]["product_id"]);
 			arrayAll.push(result[0].price);
@@ -165,7 +175,7 @@ app.get("/product.html", (req, res) => {
 			
 			let pathOtherImageOne = result[0].other_images_path.split(",");
 			for (let i=0; i<pathOtherImageOne.length; i++) {
-				arrayAll.push(pathTransformNormal2(pathOtherImageOne[i]));
+				arrayAll.push(pathOtherImageOne[i]);
 			}
 			
 			//create object to set variable in pug
@@ -293,6 +303,9 @@ app.get("/admin/checkout.html", (req, res, next) => {
     res.send(html);
 })
 
+
+
+/* ---------------Test Route--------------- */
 /* app.get("/test",(req, res) => {
 	// Set the headers
 	let headers = {
@@ -522,10 +535,172 @@ app.get("/testcache", (req, res) => {
 	res.send("done.");
 });
 
+app.get("/testaws", (req, res) => {
+	// Create unique bucket name
+	var bucketName = 'node-sdk-sample-' + uuid.v4();
+	// Create name for uploaded object key
+	var keyName = 'hello_world.txt';
+
+	// Create a promise on S3 service object
+	var bucketPromise = new AWS.S3({apiVersion: '2006-03-01'}).createBucket({Bucket: bucketName}).promise();
+
+	// Handle promise fulfilled/rejected states
+	bucketPromise.then(
+		function(data) {
+			// Create params for putObject call
+			var objectParams = {Bucket: bucketName, Key: keyName, Body: 'Hello World!'};
+			// Create object upload promise
+			var uploadPromise = new AWS.S3({apiVersion: '2006-03-01'}).putObject(objectParams).promise();
+			uploadPromise.then(
+				function(data) {
+					console.log("Successfully uploaded data to " + bucketName + "/" + keyName);
+				}
+			);
+			res.send("OK");
+		}
+	)
+	.catch(
+		function(err) {
+			console.error(err, err.stack);
+			res.send(err);
+		}
+	);
+});
+
+app.get("/testaws1", (req, res) => {
+	s3 = new AWS.S3({apiVersion: "2006-03-01"});
+	console.log(s3);
+	
+	s3.listBuckets((err, data)=> {
+		if (err) {
+			console.log(err);
+		}
+		else {
+			console.log(data);
+		}
+	});
+});
+
+app.get("/testaws2", (req, res) => {
+	s3 = new AWS.S3({apiVersion: "2006-03-01"});
+	
+	const params = {Bucket: 'bucket', Key: 'key', Body: stream};
+	s3.upload(params, function(err, data) {
+	  console.log(err, data);
+	});
+});
+
+
+
+
 
 /* ---------------API 1.0--------------- */
 /* ---------------Product input form--------------- */
 app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 1}, {name: "images", maxCount: 50}]),  async (req, res) => {
+	const productId = req.body.productId;
+	const title = req.body.title;
+	const category = req.body.category;
+	const description = req.body.description;
+	const price = req.body.price;
+	const texture = req.body.texture;
+	const wash = req.body.wash;
+	const place = req.body.place;
+	const note = req.body.note;
+	const story = req.body.story;
+	const colorCodes = req.body.colorCodes;
+	const colorNames = req.body.colorNames;	
+	const sizes = req.body.sizes;
+	
+	s3 = new AWS.S3({apiVersion: "2006-03-01"});
+	
+	const params = {Bucket: 'test201931300001', Key: `${Date.now()}-${req.files.mainImage[0].originalname}`,  ACL: 'public-read', Body: req.files.mainImage[0].buffer};
+	
+	//upload main image
+	s3.upload(params, function(err, data) {
+		if (err) {
+            console.error(err);
+            return res.status(500).send('failed to upload to s3').end();
+        }
+		else {
+			console.log(data);
+			const mainImagePath = data.Location;
+			
+			//upload other images
+			const array1 = req.files.images.map((item) => {
+				const params = {Bucket: 'test201931300001', Key: `${Date.now()}-${item.originalname}`,  ACL: 'public-read', Body: item.buffer};
+				console.log(params);
+				
+				//async function use Promise
+				const promiseUpload = new Promise ((reso, rej) => {
+					s3.upload(params, function(err, data) {
+						if (err) {
+							console.error(err);
+							return rej('failed to upload to s3');
+						}
+						else {
+							console.log(data);
+							return reso(data.Location);
+						}
+					});
+				});				
+				return promiseUpload;
+			});			
+			
+			//after all map async function finish, do mysql query
+			Promise.all(array1).then( async (array1) => {
+				console.log(mainImagePath);
+				const imagesPath = array1;
+				console.log(imagesPath);
+				
+				//Insert product table
+				let result1 = await sqlQuery(`INSERT INTO product (product_id, title, category, description, price, texture, wash, place, note, story, color_codes, color_names, sizes, main_image_path, other_images_path) VALUES ('${productId}', '${title}', '${category}', "${description}", "${price}", "${texture}", "${wash}", "${place}", "${note}", "${story}", "${colorCodes}", "${colorNames}", "${sizes}", "${mainImagePath}", "${imagesPath}")`);
+				console.log("1 record inserted(table product), ID: " + result1.insertId);
+					
+				//Insert variants table
+				let productType = 1;
+
+				const arrayOfColorCodes = colorCodes.split(",");
+				const arrayOfColorNames = colorNames.split(",");
+				const arrayOfSizes = sizes.split(",");
+				const arrayOfVariants = [];
+
+
+				if (arrayOfColorCodes.length != arrayOfColorNames.length){
+					console.log("color_codes != color_names.");
+					res.send("color_codes != color_names.");
+				}
+				else {
+					let arrayTemp = [];
+					for (let i=0 ; i < arrayOfColorCodes.length ; i++){
+						for (let x=0 ; x < arrayOfSizes.length ; x++) {
+							console.log(arrayOfColorCodes[i], arrayOfSizes[x], productType);
+							arrayTemp = [productId, productType, arrayOfColorCodes[i], arrayOfColorNames[i], arrayOfSizes[x], price, "0"];
+							arrayOfVariants.push(arrayTemp);
+							
+							productType += 1;
+						}		
+					};
+					console.log(arrayOfVariants);
+					sql.query(`INSERT INTO variants (product_id, product_type, color_code, color_name, size, variant_price, stock) VALUES ?`, [arrayOfVariants], function (err, result) {
+						if (err) throw err;
+						console.log("Number of records inserted(table variants) :" + result.affectedRows);
+						
+						//clear cache
+						let value1 = myCache.del("productDetail${id}");
+						if (value1 === 1) {
+							console.log("clear cache succeed.");
+						}
+						
+						res.redirect("/admin/product.html");
+					});
+				}
+			});
+		}
+	});
+});
+
+
+/* app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 1}, {name: "images", maxCount: 50}]),  async (req, res) => {
 	const productId = req.body.productId;
 	const title = req.body.title;
 	const category = req.body.category;
@@ -598,28 +773,46 @@ app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 
 
 	
 });
+ */
 
 /* ---------------Campaigns input form--------------- */
 app.post("/api/1.0/admin/campaigns", upload.single("picture"), (req, res) =>{
 	let productId = req.body.productId;
-	let picture = pathTransform(req.file.path);
 	let story = req.body.story;
-	console.log(productId, "\n", picture, "\n", story);
+	//console.log(productId, "\n", picture, "\n", story);
 	
-	//Insert campaigns table
-	sqlQuery(`INSERT INTO campaigns (product_id, picture_path, story) VALUES ('${productId}', '${picture}', '${story}')`)
-	.then((result) => {
-		console.log("1 record inserted(table campaigns), ID: " + result.insertId);
-		//clear cache
-		let value1 = myCache.del("campaignsAll");
-		if (value1 === 1) {
-			console.log("clear cache succeed.");
+	s3 = new AWS.S3({apiVersion: "2006-03-01"});
+	
+	const params = {Bucket: 'test201931300001', Key: `${Date.now()}-${req.file.originalname}`,  ACL: 'public-read', Body: req.file.buffer};
+	
+	console.log(params);
+	
+	//upload image
+	s3.upload(params, (err, data) => {
+		if (err) {
+            console.error(err);
+            return res.status(500).send('failed to upload to s3').end();
+        }
+		else {
+			console.log(data);
+			const picture = data.Location;
+			
+			//Insert campaigns table
+			sqlQuery(`INSERT INTO campaigns (product_id, picture_path, story) VALUES ('${productId}', '${picture}', '${story}')`)
+			.then((result) => {
+				console.log("1 record inserted(table campaigns), ID: " + result.insertId);
+				//clear cache
+				let value1 = myCache.del("campaignsAll");
+				if (value1 === 1) {
+					console.log("clear cache succeed.");
+				}
+				
+				res.redirect("/admin/campaign.html");
+			})
+			.catch((err) => {
+				res.send(err);
+			});			
 		}
-		
-		res.redirect("/admin/campaign.html");
-	})
-	.catch((err) => {
-		res.send(err);
 	});
 });
 
@@ -678,10 +871,10 @@ app.get("/api/1.0/products/search", async (req, res) => {
 		arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product WHERE (product_id LIKE '%${keyword}%' OR title LIKE '%${keyword}%' OR description LIKE '%${keyword}%' OR price LIKE '%${keyword}%' OR texture LIKE '%${keyword}%' OR wash LIKE '%${keyword}%' OR place LIKE '%${keyword}%' OR story LIKE '%${keyword}%' OR color_codes LIKE '%${keyword}%' OR color_names LIKE '%${keyword}%' OR sizes LIKE '%${keyword}%') LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
 		arrayAll = arrayAll.map((obj, index, array1) => {
 			obj.sizes = obj.sizes.split(",");						//change sizes string to array
-			obj.main_image = pathTransformNormal(obj.main_image);
+			obj.main_image = obj.main_image;
 			obj.images = obj.images.split(",");						//change images string to array
 			obj.images = obj.images.map((item, index2, array2) => {
-				return pathTransformNormal(item);
+				return item;
 			});
 			obj.colors = arrayColors[index].colors;
 			obj.variants = arrayVariants[index];
@@ -743,10 +936,10 @@ app.get("/api/1.0/products/details", async (req, res) => {
 				arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product WHERE product_id = "${id}"`);
 				arrayAll = arrayAll.map((obj, index, array1) => {
 					obj.sizes = obj.sizes.split(",");						//change sizes string to array
-					obj.main_image = pathTransformNormal(obj.main_image);
+					obj.main_image = obj.main_image;
 					obj.images = obj.images.split(",");						//change images string to array
 					obj.images = obj.images.map((item, index2, array2) => {
-						return pathTransformNormal(item);
+						return item;
 					});
 					obj.colors = arrayColors[index].colors;
 					obj.variants = arrayVariants[index];
@@ -828,10 +1021,10 @@ app.get("/api/1.0/products/:category", async (req, res) => {			//this route must
 			arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
 			arrayAll = arrayAll.map((obj, index, array1) => {
 				obj.sizes = obj.sizes.split(",");						//change sizes string to array
-				obj.main_image = pathTransformNormal(obj.main_image);
+				obj.main_image = obj.main_image;
 				obj.images = obj.images.split(",");						//change images string to array
 				obj.images = obj.images.map((item, index2, array2) => {
-					return pathTransformNormal(item);
+					return item;
 				});
 				obj.colors = arrayColors[index].colors;
 				obj.variants = arrayVariants[index];
@@ -891,10 +1084,10 @@ app.get("/api/1.0/products/:category", async (req, res) => {			//this route must
 			arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product WHERE category = "${category}" LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
 			arrayAll = arrayAll.map((obj, index, array1) => {
 				obj.sizes = obj.sizes.split(",");						//change sizes string to array
-				obj.main_image = pathTransformNormal(obj.main_image);
+				obj.main_image = obj.main_image;
 				obj.images = obj.images.split(",");						//change images string to array
 				obj.images = obj.images.map((item, index2, array2) => {
-					return pathTransformNormal(item);
+					return item;
 				});
 				obj.colors = arrayColors[index].colors;
 				obj.variants = arrayVariants[index];
@@ -947,7 +1140,7 @@ app.get("/api/1.0/marketing/campaigns", async (req, res) => {
 		
 		//transform correct format
 		arrayCampaigns = arrayCampaigns.map((obj, index, array1) => {
-			obj.picture = pathTransformNormal2(obj.picture)
+			//obj.picture = pathTransformNormal2(obj.picture)
 			return obj;
 		});
 		
