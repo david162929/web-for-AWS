@@ -48,7 +48,7 @@ var upload = multer({ storage: storage });
 
 
 //create TCP connection to MySQL over SSH by using mysql2 and ssh2 module
-let sql;	//can't use const
+let pool;	//can't use const
 
 const ssh = new Client();
 ssh.on('ready', function() {
@@ -59,14 +59,26 @@ ssh.on('ready', function() {
 		3306,
 		function (err, stream) {
 			if (err) throw err;
-			sql = mysql.createConnection({
+			// Create the connection pool. The pool-specific settings are the defaults
+			pool = mysql.createPool({
+			  user: 'root',
+			  database: 'stylish',
+			  password: 'daviddata1357',
+			  stream: stream,
+			  waitForConnections: true,
+			  connectionLimit: 10,
+			  queueLimit: 0
+			});		
+			
+/* 			sql = mysql.createConnection({
 				user: 'root',
 				database: 'stylish',
 				password: 'daviddata1357',
 				stream: stream // <--- this is the important part
-			});
+			}); */
+			
 			// use sql connection as usual
-			sql.query("SELECT id FROM product", function (err, result, fields) {
+			pool.query("SELECT id FROM product", function (err, result, fields) {
 				if (err) throw err;
 				console.log("Connect to MySQL succeed!");
 			});
@@ -118,15 +130,15 @@ app.get("/", async (req, res) => {
 		
 	res.render("index.pug", objectFin);
 });
-/* 
-app.get("/testproduct.html",(req, res) => {
+
+/* app.get("/testproduct.html",(req, res) => {
 	let id = req.query.id;
 	console.log(id);
 	
 	let html = fs.readFileSync("./public/html/product.html", "utf8");
 	res.send(html);
-});
- */
+}); */
+
 
 app.get("/thankyou", (req, res) => {
 	res.render("thankyou");
@@ -681,7 +693,7 @@ app.post("/api/1.0/admin/product", upload.fields([{name: "mainImage", maxCount: 
 						}		
 					};
 					console.log(arrayOfVariants);
-					sql.query(`INSERT INTO variants (product_id, product_type, color_code, color_name, size, variant_price, stock) VALUES ?`, [arrayOfVariants], function (err, result) {
+					pool.query(`INSERT INTO variants (product_id, product_type, color_code, color_name, size, variant_price, stock) VALUES ?`, [arrayOfVariants], function (err, result) {
 						if (err) throw err;
 						console.log("Number of records inserted(table variants) :" + result.affectedRows);
 						
@@ -1589,7 +1601,7 @@ app.post("/api/1.0/order/checkout", async (req, res) => {
 //Use Promise for MySQL .query()
 function sqlQuery (query1) {
 	return new Promise ((reso, rej) => {
-		sql.query(query1,(err, result, fields) => {
+		pool.query(query1,(err, result, fields) => {
 			if (err) {
 				rej(err);
 			}
