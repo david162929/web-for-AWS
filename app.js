@@ -1193,7 +1193,7 @@ app.get("/api/1.0/marketing/campaigns-2", async (req, res) => {
 		res.send(objectFin);
 });
 
-app.get("/api/1.0/marketing/campaigns-3", async (req, res) => {
+app.get("/api/1.0/marketing/campaigns-3", (req, res) => {
 		//if not, find data from database
 		let arrayCampaigns;
 		let objectFin;
@@ -1212,6 +1212,22 @@ app.get("/api/1.0/marketing/campaigns-3", async (req, res) => {
 		.catch((e) => {
 			console.log(e);
 			res.send(e);
+		});
+});
+
+app.get("/api/1.0/marketing/campaigns-4", (req, res) => {
+		//if not, find data from database
+		let arrayCampaigns;
+		let objectFin;
+		//make campaigns array
+		pool.query(`SELECT campaigns_id, product_id, picture_path AS picture, story FROM campaigns`, (error, results) => {
+			arrayCampaigns = results.map((obj, index, array1) => {
+				//obj.picture = pathTransformNormal2(obj.picture)
+				return obj;
+			});
+			
+			objectFin = {data:arrayCampaigns};
+			res.send(objectFin);
 		});
 });
 
