@@ -1012,7 +1012,7 @@ app.get("/api/1.0/products/:category", async (req, res) => {			//this route must
 		paging 2 --> 6 --> 3
 		paging *3  */
 	
-	//try {
+	try {
 		if (category === "all") {
 			//ckeck paging
 			if (isNaN(paging)) {
@@ -1020,52 +1020,84 @@ app.get("/api/1.0/products/:category", async (req, res) => {			//this route must
 			}
 			itemStartNum = paging*itemNumPerPage;
 			
-			//make colors array
-			arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
-			arrayColors = transformToArrayColors(arrayColors);
+			//get cache
+			let value1 = myCache.get(`productListAll${paging}`);
 			
-			//make variants array
-			let result1 = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants ORDER BY variant_id DESC`);
-			result1 = transformToArrayVariants(result1);
-			for (let i=itemStartNum ; i < (itemStartNum + itemNumPerPage) ;i++) {
-				arrayVariants.push(result1[i]);
-			};
-			
-			//make final array
-			arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
-			arrayAll = arrayAll.map((obj, index, array1) => {
-				obj.sizes = obj.sizes.split(",");						//change sizes string to array
-				obj.main_image = obj.main_image;
-				obj.images = obj.images.split(",");						//change images string to array
-				obj.images = obj.images.map((item, index2, array2) => {
-					return item;
+			//check cache
+			if ( value1 == undefined ){
+				//make colors array
+				arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
+				arrayColors = transformToArrayColors(arrayColors);
+				
+				//make variants array
+				let result1 = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants ORDER BY variant_id DESC`);
+				result1 = transformToArrayVariants(result1);
+				for (let i=itemStartNum ; i < (itemStartNum + itemNumPerPage) ;i++) {
+					arrayVariants.push(result1[i]);
+				};
+				
+				//make final array
+				arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
+				arrayAll = arrayAll.map((obj, index, array1) => {
+					obj.sizes = obj.sizes.split(",");						//change sizes string to array
+					obj.main_image = obj.main_image;
+					obj.images = obj.images.split(",");						//change images string to array
+					obj.images = obj.images.map((item, index2, array2) => {
+						return item;
+					});
+					obj.colors = arrayColors[index].colors;
+					obj.variants = arrayVariants[index];
+					return obj;
 				});
-				obj.colors = arrayColors[index].colors;
-				obj.variants = arrayVariants[index];
-				return obj;
-			});
-			
-			//check total item num
-			totalItemNum = await sqlQuery(`SELECT COUNT(*) FROM product`);
-			totalItemNum = totalItemNum[0]["COUNT(*)"];
-			console.log(totalItemNum);
-			
-			//check for paging
-			paging = paging +1;
-			if (paging === Math.ceil(totalItemNum/itemNumPerPage)) {
-				objectFin = {data: arrayAll};
-				res.send(JSON.stringify(objectFin,null,4));
+				
+				//check total item num
+				totalItemNum = await sqlQuery(`SELECT COUNT(*) FROM product`);
+				totalItemNum = totalItemNum[0]["COUNT(*)"];
+				console.log(totalItemNum);
+				
+				//check for paging
+				paging = paging +1;
+				if (paging === Math.ceil(totalItemNum/itemNumPerPage)) {
+					objectFin = {data: arrayAll};
+					
+					//save in cache
+					let success = myCache.set(`productListAll${paging-1}`, objectFin);
+					if(success){
+						console.log("cache succeed.");
+					}
+					else {
+						console.log("cache failed.");
+					}
+					
+					res.send(JSON.stringify(objectFin,null,4));
+				}
+				else if (paging < Math.ceil(totalItemNum/itemNumPerPage)) {
+					objectFin = {data: arrayAll, paging: paging};
+					
+					//save in cache
+					let success = myCache.set(`productListAll${paging-1}`, objectFin);
+					if(success){
+						console.log("cache succeed.");
+					}
+					else {
+						console.log("cache failed.");
+					}
+					
+					res.send(JSON.stringify(objectFin,null,4));
+				}
+				else{
+					console.log("Out of page.")
+					res.send("Out of page.");
+				}
+				//console.log(arrayAll);
+				//console.log(JSON.stringify(objectFin,null,4));
 			}
-			else if (paging < Math.ceil(totalItemNum/itemNumPerPage)) {
-				objectFin = {data: arrayAll, paging: paging};
-				res.send(JSON.stringify(objectFin,null,4));
-			}
-			else{
-				console.log("Out of page.")
-				res.send("Out of page.");
-			}
-			//console.log(arrayAll);
-			//console.log(JSON.stringify(objectFin,null,4));
+			else {
+				//if yes, send cache
+				console.log("cache sended.");
+				res.send(value1);
+			}	
+
 		}
 		else if (category === "women" || category === "men" || category === "accessories") {
 			
@@ -1075,68 +1107,99 @@ app.get("/api/1.0/products/:category", async (req, res) => {			//this route must
 			}
 			itemStartNum = paging*itemNumPerPage;
 			
-			//make colors array
-			arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product WHERE category = "${category}" LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
-			arrayColors = transformToArrayColors(arrayColors);
+			//get cache
+			let value1 = myCache.get(`productList${category}${paging}`);
 			
-			//get product_id and send to variants
-			let temp = await sqlQuery(`SELECT product_id FROM product WHERE category = "${category}"`);
-			temp = temp.reduce((accumulator,currentValue) => {
-				//console.log(accumulator,"\n",currentValue.product_id);
-				accumulator += "," + `"${currentValue.product_id}"`;
-				return accumulator;
-			},`"${temp[0].product_id}"`);
-			
-			//make variants array
-			let result1 = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id IN (${temp}) ORDER BY variant_id DESC`);
-			result1 = transformToArrayVariants(result1);
-			for (let i=itemStartNum ; i < (itemStartNum + itemNumPerPage) ;i++) {
-				arrayVariants.push(result1[i]);
-			};
-			
-			//make final array
-			arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product WHERE category = "${category}" LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
-			arrayAll = arrayAll.map((obj, index, array1) => {
-				obj.sizes = obj.sizes.split(",");						//change sizes string to array
-				obj.main_image = obj.main_image;
-				obj.images = obj.images.split(",");						//change images string to array
-				obj.images = obj.images.map((item, index2, array2) => {
-					return item;
+			//check cache
+			if ( value1 == undefined ){
+				//make colors array
+				arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product WHERE category = "${category}" LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
+				arrayColors = transformToArrayColors(arrayColors);
+				
+				//get product_id and send to variants
+				let temp = await sqlQuery(`SELECT product_id FROM product WHERE category = "${category}"`);
+				temp = temp.reduce((accumulator,currentValue) => {
+					//console.log(accumulator,"\n",currentValue.product_id);
+					accumulator += "," + `"${currentValue.product_id}"`;
+					return accumulator;
+				},`"${temp[0].product_id}"`);
+				
+				//make variants array
+				let result1 = await sqlQuery(`SELECT product_id AS id, product_type, color_code, size, stock FROM variants WHERE product_id IN (${temp}) ORDER BY variant_id DESC`);
+				result1 = transformToArrayVariants(result1);
+				for (let i=itemStartNum ; i < (itemStartNum + itemNumPerPage) ;i++) {
+					arrayVariants.push(result1[i]);
+				};
+				
+				//make final array
+				arrayAll = await sqlQuery(`SELECT product_id AS id, title, description, price, texture, wash, place, note, story, sizes, main_image_path AS main_image, other_images_path AS images FROM product WHERE category = "${category}" LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
+				arrayAll = arrayAll.map((obj, index, array1) => {
+					obj.sizes = obj.sizes.split(",");						//change sizes string to array
+					obj.main_image = obj.main_image;
+					obj.images = obj.images.split(",");						//change images string to array
+					obj.images = obj.images.map((item, index2, array2) => {
+						return item;
+					});
+					obj.colors = arrayColors[index].colors;
+					obj.variants = arrayVariants[index];
+					return obj;
 				});
-				obj.colors = arrayColors[index].colors;
-				obj.variants = arrayVariants[index];
-				return obj;
-			});
-			
-			//check total item num
-			totalItemNum = await sqlQuery(`SELECT COUNT(*) FROM product WHERE product_id IN (${temp})`);
-			totalItemNum = totalItemNum[0]["COUNT(*)"];
-			console.log(totalItemNum);
-			
-			//check for paging
-			paging = paging +1;
-			if (paging === Math.ceil(totalItemNum/itemNumPerPage)) {
-				objectFin = {data: arrayAll};
-				res.send(JSON.stringify(objectFin,null,4));
+				
+				//check total item num
+				totalItemNum = await sqlQuery(`SELECT COUNT(*) FROM product WHERE product_id IN (${temp})`);
+				totalItemNum = totalItemNum[0]["COUNT(*)"];
+				console.log(totalItemNum);
+				
+				//check for paging
+				paging = paging +1;
+				if (paging === Math.ceil(totalItemNum/itemNumPerPage)) {
+					objectFin = {data: arrayAll};
+					
+					//save in cache
+					let success = myCache.set(`productList${category}${paging-1}`, objectFin);
+					if(success){
+						console.log("cache succeed.");
+					}
+					else {
+						console.log("cache failed.");
+					}
+					
+					res.send(JSON.stringify(objectFin,null,4));
+				}
+				else if (paging < Math.ceil(totalItemNum/itemNumPerPage)) {
+					objectFin = {data: arrayAll, paging: paging};
+					
+					//save in cache
+					let success = myCache.set(`productList${category}${paging-1}`, objectFin);
+					if(success){
+						console.log("cache succeed.");
+					}
+					else {
+						console.log("cache failed.");
+					}
+					
+					res.send(JSON.stringify(objectFin,null,4));
+				}
+				else{
+					console.log("Out of page.")
+					res.send("Out of page.");
+				}
+				//console.log(arrayAll);
+				//console.log(JSON.stringify(objectFin,null,4));
 			}
-			else if (paging < Math.ceil(totalItemNum/itemNumPerPage)) {
-				objectFin = {data: arrayAll, paging: paging};
-				res.send(JSON.stringify(objectFin,null,4));
+			else {
+				//if yes, send cache
+				console.log("cache sended.");
+				res.send(value1);
 			}
-			else{
-				console.log("Out of page.")
-				res.send("Out of page.");
-			}
-			//console.log(arrayAll);
-			console.log(JSON.stringify(objectFin,null,4));
 		}
 		else {
 			res.send("Category dose not exist.");
 		}
-	// }
-	// catch (e) {
-		// res.status(500).send(e.message);
-	// }
+	}
+	catch (e) {
+		res.status(500).send(e.message);
+	}
 });
 
 /* ---------------Marketing Campaigns API--------------- */
