@@ -66,7 +66,7 @@ ssh.on('ready', function() {
 			  password: 'daviddata1357',
 			  stream: stream,
 			  waitForConnections: true,
-			  connectionLimit: 10,
+			  connectionLimit: 1000,
 			  queueLimit: 0
 			});		
 			
