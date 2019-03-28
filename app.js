@@ -1176,6 +1176,47 @@ app.get("/api/1.0/marketing/campaigns", async (req, res) => {
 	}	
 });
 
+app.get("/api/1.0/marketing/campaigns-2", async (req, res) => {
+		//if not, find data from database
+		let arrayCampaigns;
+		let objectFin;
+		//make campaigns array
+		arrayCampaigns = await sqlQuery(`SELECT campaigns_id, product_id, picture_path AS picture, story FROM campaigns`);
+		
+		//transform correct format
+		arrayCampaigns = arrayCampaigns.map((obj, index, array1) => {
+			//obj.picture = pathTransformNormal2(obj.picture)
+			return obj;
+		});
+		
+		objectFin = {data:arrayCampaigns};
+		res.send(objectFin);
+});
+
+app.get("/api/1.0/marketing/campaigns-3", async (req, res) => {
+		//if not, find data from database
+		let arrayCampaigns;
+		let objectFin;
+		//make campaigns array
+		sqlQuery(`SELECT campaigns_id, product_id, picture_path AS picture, story FROM campaigns`)
+		.then((arrayCampaigns) => {
+			//transform correct format
+			arrayCampaigns = arrayCampaigns.map((obj, index, array1) => {
+				//obj.picture = pathTransformNormal2(obj.picture)
+				return obj;
+			});
+			
+			objectFin = {data:arrayCampaigns};
+			res.send(objectFin);
+		})
+		.catch((e) => {
+			console.log(e);
+			res.send(e);
+		});
+});
+
+
+
 /* ---------------User Sign Up API--------------- */
 app.post("/api/1.0/user/signup", async (req, res) => {
 	console.log(req.body);
