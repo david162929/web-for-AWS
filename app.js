@@ -153,7 +153,7 @@ app.get("/product.html", (req, res) => {
 	}
 	else {
 		//get product info
-		sqlQuery(`SELECT * FROM product WHERE id = ${id}`)
+		sqlQuery(`SELECT * FROM product WHERE product_id = ${id}`)
 		.then((result) => {
 			console.log(result);
 			let arrayAll = [];
