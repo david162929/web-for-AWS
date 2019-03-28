@@ -60,22 +60,24 @@ ssh.on('ready', function() {
 		function (err, stream) {
 			if (err) throw err;
 			// Create the connection pool. The pool-specific settings are the defaults
-			pool = mysql.createPool({
+/* 			pool = mysql.createPool({
 			  user: 'root',
 			  database: 'stylish',
 			  password: 'daviddata1357',
 			  stream: stream,
 			  waitForConnections: true,
-			  connectionLimit: 1000,
+			  connectionLimit: 100,
 			  queueLimit: 0
-			});		
+			});	 */	
 			
-/* 			sql = mysql.createConnection({
+			sql = mysql.createConnection({
 				user: 'root',
 				database: 'stylish',
 				password: 'daviddata1357',
 				stream: stream // <--- this is the important part
-			}); */
+			});
+			
+			pool = sql;
 			
 			// use sql connection as usual
 			pool.query("SELECT id FROM product", function (err, result, fields) {
