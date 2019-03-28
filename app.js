@@ -1010,7 +1010,7 @@ app.get("/api/1.0/products/:category", async (req, res) => {			//this route must
 		paging 2 --> 6 --> 3
 		paging *3  */
 	
-	try {
+	//try {
 		if (category === "all") {
 			//ckeck paging
 			if (isNaN(paging)) {
@@ -1019,7 +1019,7 @@ app.get("/api/1.0/products/:category", async (req, res) => {			//this route must
 			itemStartNum = paging*itemNumPerPage;
 			
 			//make colors array
-			arrayColors =  sqlQuery(`SELECT color_codes, color_names FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
+			arrayColors = await sqlQuery(`SELECT color_codes, color_names FROM product LIMIT ${itemNumPerPage} OFFSET ${itemStartNum}`);
 			arrayColors = transformToArrayColors(arrayColors);
 			
 			//make variants array
@@ -1063,7 +1063,7 @@ app.get("/api/1.0/products/:category", async (req, res) => {			//this route must
 				res.send("Out of page.");
 			}
 			//console.log(arrayAll);
-			console.log(JSON.stringify(objectFin,null,4));
+			//console.log(JSON.stringify(objectFin,null,4));
 		}
 		else if (category === "women" || category === "men" || category === "accessories") {
 			
@@ -1131,10 +1131,10 @@ app.get("/api/1.0/products/:category", async (req, res) => {			//this route must
 		else {
 			res.send("Category dose not exist.");
 		}
-	}
-	catch (e) {
-		res.status(500).send(e.message);
-	}
+	// }
+	// catch (e) {
+		// res.status(500).send(e.message);
+	// }
 });
 
 /* ---------------Marketing Campaigns API--------------- */
@@ -1656,7 +1656,6 @@ function pathTransformNormal2 (str) {
 
 //colors
 function transformToArrayColors (arr) {
-try {
 	let res = arr.map((item, index, array1) => {
 		let str1 = item.color_codes.split(",");
 		let str2 = item.color_names.split(",");
@@ -1666,8 +1665,6 @@ try {
 		return {colors:temp};
 	});
 	return res;
-} catch(e) {
-		res.status(500).send(`something wen't wrong`);}
 };
 //Variants(Input ORDER BY DESC, output ORDER BY ASC)
 function transformToArrayVariants (arr) {
