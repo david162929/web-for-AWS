@@ -11,6 +11,9 @@ const fs = require('fs');
 const NodeCache = require( "node-cache" );
 const AWS = require('aws-sdk');
 const uuid = require('uuid');
+const secretMysql = require("./../.secret/mysql.js");
+const secretEc2 = require("./../.secret/ec2.js");
+const secretTappay = require("./../.secret/tappay.js");
 
 const app = express();
 
@@ -60,24 +63,24 @@ ssh.on('ready', function() {
 		function (err, stream) {
 			if (err) throw err;
 			// Create the connection pool. The pool-specific settings are the defaults
-/* 			pool = mysql.createPool({
-			  user: 'root',
-			  database: 'stylish',
-			  password: 'daviddata1357',
-			  stream: stream,
-			  waitForConnections: true,
-			  connectionLimit: 100,
-			  queueLimit: 0
-			});	 */	
+			pool = mysql.createPool({
+				user: secretMysql.user,
+				database: secretMysql.database,
+				password: secretMysql.password,
+				stream: stream,
+				waitForConnections: true,
+				connectionLimit: 20,
+				queueLimit: 0
+			});		
 			
-			sql = mysql.createConnection({
-				user: 'root',
-				database: 'stylish',
-				password: 'daviddata1357',
-				stream: stream // <--- this is the important part
-			});
+/* 			sql = mysql.createConnection({
+				user: secretMysql.user,
+				database: secretMysql.database,
+				password: secretMysql.password,
+				stream: stream
+			}); */
 			
-			pool = sql;
+			//pool = sql;
 			
 			// use sql connection as usual
 			pool.query("SELECT id FROM product", function (err, result, fields) {
@@ -88,10 +91,10 @@ ssh.on('ready', function() {
 		});
 	}).connect({
 	// ssh connection config ...
-	host: '52.15.89.192',
+	host: secretEc2.host,
 	port: 22,
-	username: 'ec2-user',
-	privateKey: require('fs').readFileSync(".ssh/2019-4-3-keyPair.pem")
+	username: secretEc2.username,
+	privateKey: secretEc2.privateKey
 }); 
 
 
@@ -320,51 +323,6 @@ app.get("/admin/checkout.html", (req, res, next) => {
 
 
 /* ---------------Test Route--------------- */
-/* app.get("/test",(req, res) => {
-	// Set the headers
-	let headers = {
-		'content-type':     'application/json',
-		'x-api-key': 'partner_PHgswvYEk4QY6oy3n8X3CwiQCVQmv91ZcFoD5VrkGFXo8N7BFiLUxzeG'
-	}
-	let data = {
-		"prime": "0d593d5d87174d208135370533b15a6ee5797448433a053b4bedd3953a0dace1",
-		"partner_key": "partner_PHgswvYEk4QY6oy3n8X3CwiQCVQmv91ZcFoD5VrkGFXo8N7BFiLUxzeG",
-		"merchant_id": "AppWorksSchool_CTBC",
-		"details":"TapPay Test",
-		"amount": "1",
-		"order_number": "123",
-		"cardholder": {
-			"phone_number": "+886923456789",
-			"name": "testtt",
-			"email": "testtt@Doe.com"
-		},
-		"remember": false
-	};
-	
-	// Configure the request
-	let options = {
-		url: 'https://sandbox.tappaysdk.com/tpc/payment/pay-by-prime',
-		method: 'POST',
-		headers: headers,
-		json:data
-	}
-	
-	
-	// Start the request
-	request(options, (error, response, body) => {
-		if (!error && response.statusCode == 200) {
-			// Print out the response body
-			console.log(body);
-			res.send(body);
-		}
-	})
-}); */
-/* app.post("/test",(req, res) => {
-	console.log(req.body);
-	
-	res.send("post OK.");
-}); */
-
 app.get("/test-post", (req, res) => {
 	// Set the headers
 	let headers = {
@@ -1664,12 +1622,12 @@ app.post("/api/1.0/order/checkout", async (req, res) => {
 		//access to TapPay server and check info
 		let headers = {
 			'content-type':     'application/json',
-			'x-api-key': 'partner_PHgswvYEk4QY6oy3n8X3CwiQCVQmv91ZcFoD5VrkGFXo8N7BFiLUxzeG'
+			'x-api-key': secretTappay.partnerKey
 		}
 		let data = {
 			"prime": prime,
-			"partner_key": "partner_PHgswvYEk4QY6oy3n8X3CwiQCVQmv91ZcFoD5VrkGFXo8N7BFiLUxzeG",
-			"merchant_id": "AppWorksSchool_CTBC",
+			"partner_key": secretTappay.partnerKey,
+			"merchant_id": secretTappay.merchantId,
 			"details":"TapPay Test",
 			"amount": "1",
 			"order_number": id,
@@ -1787,7 +1745,7 @@ function transformToArrayColors (arr) {
 		return {colors:temp};
 	});
 	return res;
-};
+}
 //Variants(Input ORDER BY DESC, output ORDER BY ASC)
 function transformToArrayVariants (arr) {
 	let array1 = [];
@@ -1803,7 +1761,7 @@ function transformToArrayVariants (arr) {
 		}
 	}
 	return array1;
-};
+}
 
 /* ---------------Create format array---------------施工中 */
 /* function createArrayColors (callback) {
